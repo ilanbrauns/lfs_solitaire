@@ -84,16 +84,11 @@ pred wellformed_card {
         // a card's next can't be itself
         card.next != card
 
-        card not in Used.cards implies no card.next
+        card not in Used.cards implies no card.next // a card can only have a next if it's been flipped over
 
        (card.suit = 1 or card.suit = 4) implies card.color = 1      
        (card.suit = 2 or card.suit = 3) implies card.color = 0
 
-
-    // do we need this?
-    //    card.suit = card.suit'
-    //    card.color = card.color'
-    //    card.rank = card.rank'
     }
 
     #{card : Card | card.suit = 1} = 7
@@ -140,7 +135,6 @@ pred wellformed_deck {
 pred wellformed_pile {
     all pile : Pile | {
         pile.id >= 0 && pile.id < 5 // 5 piles; 0 indexed
-       // pile.top_card in Used.cards 
         pile.top_card in pile.pile_flipped
         
         all card: Card | {
@@ -160,19 +154,23 @@ pred wellformed_pile {
 run {
     always{wellformed}
     initial
-    draw_from_deck // real thing: change to always{move}
+    always{move} // real thing: change to always{move}
+    // NOTE: to test draw_from_deck, comment above always{move} and uncomment draw_from_deck below. It will draw once
+    // draw_from_deck
  } 
 for 5 Int, exactly 5 Pile, exactly 28 Card, exactly 4 Foundation // increase bit width?
 
-// pred move {
-//     draw_from_deck or move_pile or move_deck or move_to_foundation
-// }
+pred move {
+    draw_from_deck or deck_to_pile or do_nothing
+    
+   //  or move_pile or move_deck or move_to_foundation
+}
 
 pred draw_from_deck{
 
     // new movable card in next state 
-    Deck.movable != Deck.movable'
-    some Deck.movable'
+    Deck.movable != Deck.movable' // if we've drawn, we've changed our top card
+    some Deck.movable' 
     some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
@@ -185,24 +183,60 @@ pred draw_from_deck{
     }
 }
 
-// pred move_deck{
-//     //remove current movable card in deck
-//     Deck.movable' != Deck.movable
-//     // change movable card in deck to an already flipped card, or nothing
-//     Deck.movable' in Deck.flipped or (#{Deck.flipped} = 0)
-//     // add card to pile
-//     some pile : Pile |{
-//         //............ idk
-//     }
+pred deck_to_pile{
+    //remove current movable card in deck
+    // change movable card in deck to an already flipped card, or nothing
+   // Deck.movable' in Deck.flipped or (#{Deck.flipped} = 0)
+    // add card to pile
+    some pile : Pile |
+        // requirements for being able to move to a pile
+        { pile.top_card.color != Deck.movable.color // have to alternate colors
+        pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher{
+        } implies {
+            Deck.movable' = Deck.movable.next
+            pile.top_card' = Deck.movable
+            //pile.unflipped' does the unflipped number icnrease?
+            #{pile.pile_flipped'} = #{pile.pile_flipped}
+            pile.id' = pile.id
+            Deck.flipped' = Deck.flipped - Deck.movable
+            Deck.unflipped' = Deck.unflipped
+        }
+    Used.cards' = Used.cards
+            
+}
+
+pred do_nothing {
+    Deck.flipped' = Deck.flipped
+    Deck.unflipped' = Deck.unflipped
+    Deck.movable' = Deck.movable
+
+    all pile: Pile | {
+        pile.pile_flipped' = pile.pile_flipped
+        pile.pile_unflipped' = pile.pile_unflipped
+        pile.top_card' = pile.top_card
+    }
+
+    Used.cards' = Used.cards
+
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
+}
+// pred pile_to_pile{
+
 // }
 
-// pred move_pile{
-
-// }
-
-// pred move_to_foundation {
+// pred pile_to_foundation {
 
 //}
+
+// pred deck_to_foundation {
+
+// }
+
+// pred reset_deck {
+
+// }
 
 // pred game_over{
 //     winning_game or lost_game

@@ -113,11 +113,11 @@ pred wellformed_card {
 
 pred wellformed_deck {
     // cards in a deck must not be anywhere else
-    // some Deck.movable implies {
-    //     // Deck.movable in Used.cards
-    //     Deck.movable not in Deck.unflipped
-    //     Deck.movable in Deck.flipped
-    // }
+    some Deck.movable implies {
+        // Deck.movable in Used.cards
+        Deck.movable not in Deck.unflipped
+        Deck.movable in Deck.flipped
+    }
 
     // cards in unflipped can't be used 
     all card: Card | {
@@ -162,7 +162,7 @@ run {
     initial
     draw_from_deck // real thing: change to always{move}
  } 
-for 5 Int, exactly 5 Pile, exactly 28 Card, 4 Foundation // increase bit width?
+for 5 Int, exactly 5 Pile, exactly 28 Card, exactly 4 Foundation // increase bit width?
 
 // pred move {
 //     draw_from_deck or move_pile or move_deck or move_to_foundation
@@ -175,13 +175,9 @@ pred draw_from_deck{
     some Deck.movable'
     some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
-
-    // this line is making it unsat i'm not sure why
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
-
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
     Used.cards' = Used.cards + Deck.movable'
-    //Deck.movable' not in Used.cards
     all pile: Pile | {
         #{pile.pile_flipped'} = #{pile.pile_flipped}
         pile.pile_unflipped' = pile.pile_unflipped

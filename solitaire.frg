@@ -13,14 +13,14 @@ sig Card {
 one sig Deck {
     var flipped: set Card,
     var unflipped: set Card,
-    movable: lone Card
+    var movable: lone Card
 }
 
 sig Pile {
     id: one Int,
     var pile_flipped: set Card,
     var pile_unflipped: one Int,
-    top_card: one Card 
+    var top_card: one Card 
 }
 
 one sig Used {
@@ -28,7 +28,7 @@ one sig Used {
 }
 
 sig Foundation {
-    highest_card: one Int,
+    var highest_card: one Int,
     found_suit: one Int
 }
 
@@ -47,10 +47,6 @@ pred initial {
         pile.pile_unflipped = pile.id
         // only one flipped card per pile to start
         #{pile.pile_flipped} = 1
-    }
-    all disj card1, card2 : Card | {
-        // no two equal cards
-        (card1.rank != card2.rank) or (card1.suit != card2.suit)
     }
     // only 5 cards used to start
     #{Used.cards} = 5
@@ -88,8 +84,11 @@ pred wellformed_card {
         // a card's next can't be itself
         card.next != card
 
+        card not in Used.cards implies no card.next
+
        (card.suit = 1 or card.suit = 4) implies card.color = 1      
        (card.suit = 2 or card.suit = 3) implies card.color = 0
+
 
     // do we need this?
     //    card.suit = card.suit'
@@ -101,14 +100,28 @@ pred wellformed_card {
     #{card : Card | card.suit = 2} = 7
     #{card : Card | card.suit = 3} = 7
     #{card : Card | card.suit = 4} = 7
+
+    all disj card1, card2 : Card | {
+        // no two equal cards
+        (card1.rank != card2.rank) or (card1.suit != card2.suit)
+    }
+
+
 }
+
+   
 
 pred wellformed_deck {
     // cards in a deck must not be anywhere else
-    some Deck.movable implies {
-        // Deck.movable in Used.cards
-        Deck.movable not in Deck.unflipped
-        Deck.movable in Deck.flipped
+    // some Deck.movable implies {
+    //     // Deck.movable in Used.cards
+    //     Deck.movable not in Deck.unflipped
+    //     Deck.movable in Deck.flipped
+    // }
+
+    // cards in unflipped can't be used 
+    all card: Card | {
+        card in Deck.unflipped implies card not in Used.cards
     }
     
     // non-empty deck must have some movable card
@@ -120,14 +133,14 @@ pred wellformed_deck {
     //deck can only decrement by 1 at a time:
 }
 
-pred wellformed_used{
-    #{Used.cards'} >= #{Used.cards}
-}
+// pred wellformed_used{
+//     #{Used.cards'} >= #{Used.cards}
+// }
 
 pred wellformed_pile {
     all pile : Pile | {
         pile.id >= 0 && pile.id < 5 // 5 piles; 0 indexed
-        pile.top_card in Used.cards 
+       // pile.top_card in Used.cards 
         pile.top_card in pile.pile_flipped
         
         all card: Card | {
@@ -139,38 +152,40 @@ pred wellformed_pile {
         all card: Card | {
             card in pile1.pile_flipped implies card not in pile2.pile_flipped
             card in pile2.pile_flipped implies card not in pile1.pile_flipped
-
         } 
     }
+
 }
 
 run {
     always{wellformed}
     initial
-    always{draw_from_deck} // real thing: change to always{move}
+    draw_from_deck // real thing: change to always{move}
  } 
-for 5 Int, exactly 5 Pile, exactly 28 Card, 4 Foundation 
+for 5 Int, exactly 5 Pile, exactly 28 Card, 4 Foundation // increase bit width?
 
 // pred move {
 //     draw_from_deck or move_pile or move_deck or move_to_foundation
 // }
 
 pred draw_from_deck{
-    // size only changes by 1
-    
-    // #{Deck.unflipped'} = subtract[#{Deck.unflipped}, 1]  // size of unflipped decreases by 1
-    // #{Deck.flipped'} = add[#{Deck.flipped}, 1] // size of flipped increases by 1
+
     // new movable card in next state 
-    // Deck.movable != Deck.movable'
-    //some Deck.movable'
-    Deck.movable'.next = Deck.movable // new movable's next is old movable
-    Deck.movable' in Deck.unflipped // the next movable cared came from our prior state's unfliip
+    Deck.movable != Deck.movable'
+    some Deck.movable'
+    some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
+
+    // this line is making it unsat i'm not sure why
+    Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
+
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
+    Used.cards' = Used.cards + Deck.movable'
+    //Deck.movable' not in Used.cards
     all pile: Pile | {
         #{pile.pile_flipped'} = #{pile.pile_flipped}
         pile.pile_unflipped' = pile.pile_unflipped
-
+        pile.top_card' = pile.top_card
     }
 }
 

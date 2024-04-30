@@ -1,7 +1,11 @@
 #lang forge/temporal
 
-option max_tracelength 12
-option min_tracelength 12
+option max_tracelength 7
+
+-- constants for card numbers
+fun DECK_SIZE: one Int { 5 }
+fun NUM_CARDS: one Int { 20 } // change to 28
+
 
 sig Card {
     rank: one Int, 
@@ -48,10 +52,16 @@ pred initial {
         // only one flipped card per pile to start
         #{pile.pile_flipped} = 1
     }
+
+     // cards in unflipped can't be used 
+    all card: Card | {
+        card in Deck.unflipped implies card not in Used.cards
+    }
+    
     // only 5 cards used to start
     #{Used.cards} = 5
     #{Deck.flipped} = 0
-    #{Deck.unflipped} = 13
+    #{Deck.unflipped} = 5
     no Deck.movable
 }   
 
@@ -73,7 +83,7 @@ pred wellformed_foundation {
 pred wellformed_card {
     all card : Card | {
         // card ranks are between 1-7
-        card.rank > 0 && card.rank <= 7
+        card.rank > 0 && card.rank <= 5
         
         // card color is 0 (black) or 1 (red)
         card.color = 0 || card.color = 1
@@ -91,19 +101,16 @@ pred wellformed_card {
 
     }
 
-    #{card : Card | card.suit = 1} = 7
-    #{card : Card | card.suit = 2} = 7
-    #{card : Card | card.suit = 3} = 7
-    #{card : Card | card.suit = 4} = 7
+    #{card : Card | card.suit = 1} = 5
+    #{card : Card | card.suit = 2} = 5
+    #{card : Card | card.suit = 3} = 5
+    #{card : Card | card.suit = 4} = 5
 
     all disj card1, card2 : Card | {
         // no two equal cards
         (card1.rank != card2.rank) or (card1.suit != card2.suit)
     }
-
-
 }
-
    
 
 pred wellformed_deck {
@@ -114,15 +121,10 @@ pred wellformed_deck {
         Deck.movable in Deck.flipped
     }
 
-    // cards in unflipped can't be used 
-    all card: Card | {
-        card in Deck.unflipped implies card not in Used.cards
-    }
-    
     // non-empty deck must have some movable card
-    #{Deck.flipped} > 0  implies some Deck.movable
+   // #{Deck.flipped} > 0  implies some Deck.movable
     // never exceeds 13 cards
-    #{Deck.unflipped} < 14
+    #{Deck.unflipped} < 6
     
 
     //deck can only decrement by 1 at a time:
@@ -154,14 +156,22 @@ pred wellformed_pile {
 run {
     always{wellformed}
     initial
-    always{move} // real thing: change to always{move}
-    // NOTE: to test draw_from_deck, comment above always{move} and uncomment draw_from_deck below. It will draw once
-    // draw_from_deck
+   // always {move} // real thing: change to always{move}
+   // eventually {do_nothing}
+  // eventually { #{Deck.unflipped} = 0}
+  eventually {}
+   always{move}
+   // reset_deck
  } 
-for 5 Int, exactly 5 Pile, exactly 28 Card, exactly 4 Foundation // increase bit width?
+for 5 Int, exactly 5 Pile, exactly 20 Card, exactly 4 Foundation // increase bit width?
 
 pred move {
-    draw_from_deck or deck_to_pile or do_nothing
+    (#{Deck.unflipped} = 0) => {
+        reset_deck
+    } else {
+        draw_from_deck
+    }
+    //draw_from_deck or do_nothing
     
    //  or move_pile or move_deck or move_to_foundation
 }
@@ -169,21 +179,28 @@ pred move {
 pred draw_from_deck{
 
     // new movable card in next state 
-    Deck.movable != Deck.movable' // if we've drawn, we've changed our top card
-    some Deck.movable' 
-    some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
-    Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
+   // Deck.movable' != Deck.movable // if we've drawn, we've changed our top card
+     // some Deck.movable' 
+    // some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
+    Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
     Used.cards' = Used.cards + Deck.movable'
     all pile: Pile | {
-        #{pile.pile_flipped'} = #{pile.pile_flipped}
+        pile.pile_flipped' = pile.pile_flipped
         pile.pile_unflipped' = pile.pile_unflipped
         pile.top_card' = pile.top_card
     }
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
 }
 
-pred deck_to_pile{
+pred valid_deck_to_pile {
+    
+}
+
+pred move_deck_to_pile{
     //remove current movable card in deck
     // change movable card in deck to an already flipped card, or nothing
    // Deck.movable' in Deck.flipped or (#{Deck.flipped} = 0)
@@ -191,8 +208,8 @@ pred deck_to_pile{
     some pile : Pile |
         // requirements for being able to move to a pile
         { pile.top_card.color != Deck.movable.color // have to alternate colors
-        pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher{
-        } implies {
+        pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
+        } => {
             Deck.movable' = Deck.movable.next
             pile.top_card' = Deck.movable
             //pile.unflipped' does the unflipped number icnrease?
@@ -200,6 +217,13 @@ pred deck_to_pile{
             pile.id' = pile.id
             Deck.flipped' = Deck.flipped - Deck.movable
             Deck.unflipped' = Deck.unflipped
+        } else {
+            pile.top_card' = pile.top_card
+            pile.pile_flipped' = pile.pile_flipped
+            pile.pile_unflipped' = pile.pile_unflipped
+            Deck.flipped' = Deck.flipped
+            Deck.unflipped' = Deck.unflipped
+
         }
     Used.cards' = Used.cards
             
@@ -222,6 +246,7 @@ pred do_nothing {
         found.highest_card' = found.highest_card
     }
 }
+
 // pred pile_to_pile{
 
 // }
@@ -234,21 +259,42 @@ pred do_nothing {
 
 // }
 
-// pred reset_deck {
+pred reset_deck {
+    // guard
+    Deck.unflipped' = Deck.flipped
+    //#{Deck.flipped'} = 0
+    Deck.flipped' = Deck.unflipped
+    no Deck.movable' 
 
-// }
+    all pile: Pile | {
+        pile.pile_flipped' = pile.pile_flipped
+        pile.pile_unflipped' = pile.pile_unflipped
+        pile.top_card' = pile.top_card
+    }
 
-// pred game_over{
-//     winning_game or lost_game
-// }
+    Used.cards' = Used.cards
+
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
+
+
+}
+
+pred game_over{
+    // winning_game or lost_game
+    winning_game
+}
 
 // pred lost_game{
-
-// }
-
-// pred winning_game {
     
 // }
+
+pred winning_game {
+    all found: Foundation | {
+        found.highest_card = 1
+    }
+}
 
 // pred game_trace{
 //     always {

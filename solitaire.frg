@@ -1,6 +1,6 @@
 #lang forge/temporal
 
-option max_tracelength 7
+option max_tracelength 10
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 5 }
@@ -159,15 +159,21 @@ run {
    // always {move} // real thing: change to always{move}
    // eventually {do_nothing}
   // eventually { #{Deck.unflipped} = 0}
-  eventually {}
+   eventually {game_over}
    always{move}
    // reset_deck
  } 
 for 5 Int, exactly 5 Pile, exactly 20 Card, exactly 4 Foundation // increase bit width?
 
 pred move {
-    (#{Deck.unflipped} = 0) => {
-        reset_deck
+    // (#{Deck.unflipped} = 0) => {
+    //     reset_deck
+    // } else {
+    //     draw_from_deck
+    // }
+
+    (Deck.movable.rank = 1) => {
+        deck_to_foundation
     } else {
         draw_from_deck
     }
@@ -181,7 +187,7 @@ pred draw_from_deck{
     // new movable card in next state 
    // Deck.movable' != Deck.movable // if we've drawn, we've changed our top card
      // some Deck.movable' 
-    // some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
+    some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
@@ -251,13 +257,54 @@ pred do_nothing {
 
 // }
 
-// pred pile_to_foundation {
+pred pile_to_foundation {
+    some pile: Pile | {
+        all found: Foundation | {
+            found.found_suit = pile.top_card.suit => {
+                found.highest_card' = pile.top_card.rank 
+                pile.top_card' = pile.top_card.next
 
-//}
+            }
+            else {
+                found.highest_card' = found.highest_card
+            }
+        }
+        Deck.flipped' = Deck.flipped - Deck.movable
+        Deck.unflipped' = Deck.unflipped
 
-// pred deck_to_foundation {
+        all pile: Pile | {
+            pile.pile_flipped' = pile.pile_flipped
+            pile.pile_unflipped' = pile.pile_unflipped
+            pile.top_card' = pile.top_card
+        }
 
-// }
+        Used.cards' = Used.cards
+    }   
+}
+
+pred deck_to_foundation {
+    Deck.movable' = Deck.movable.next
+    all found: Foundation | {
+        found.found_suit = Deck.movable.suit => {
+            found.highest_card' = Deck.movable.rank 
+        }
+        else {
+            found.highest_card' = found.highest_card
+        }
+    }
+    Deck.flipped' = Deck.flipped - Deck.movable
+    Deck.unflipped' = Deck.unflipped
+
+
+    all pile: Pile | {
+        pile.pile_flipped' = pile.pile_flipped
+        pile.pile_unflipped' = pile.pile_unflipped
+        pile.top_card' = pile.top_card
+    }
+
+    Used.cards' = Used.cards
+
+}
 
 pred reset_deck {
     // guard

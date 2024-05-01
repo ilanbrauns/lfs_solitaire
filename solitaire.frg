@@ -4,7 +4,7 @@ option max_tracelength 10
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 10 }
-fun NUM_CARDS: one Int { 20 } // change to 28
+fun NUM_CARDS: one Int { 20 } 
 
 
 sig Card {
@@ -148,10 +148,12 @@ pred wellformed_piles {
     }
 }
 
+-- **WORKS
 pred valid_draw_from_deck {
     #{Deck.unflipped} = 0
 }
 
+-- **WORKS
 pred draw_from_deck{
     some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile

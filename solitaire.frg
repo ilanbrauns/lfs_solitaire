@@ -114,7 +114,6 @@ pred wellformed_card {
         (card1.rank != card2.rank) or (card1.suit != card2.suit)
     }
 }
-   
 
 pred wellformed_deck {
     // cards in a deck must not be anywhere else
@@ -130,10 +129,6 @@ pred wellformed_deck {
     #{Deck.unflipped} < 11
     
 }
-
-// pred wellformed_used{
-//     #{Used.cards'} >= #{Used.cards}
-// }
 
 pred wellformed_piles {
     all pile : Pile | {
@@ -151,7 +146,6 @@ pred wellformed_piles {
             card in pile2.pile_flipped implies card not in pile1.pile_flipped
         } 
     }
-
 }
 
 pred valid_draw_from_deck {
@@ -159,10 +153,6 @@ pred valid_draw_from_deck {
 }
 
 pred draw_from_deck{
-
-    // new movable card in next state 
-   // Deck.movable' != Deck.movable // if we've drawn, we've changed our top card
-     // some Deck.movable' 
     some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
@@ -178,63 +168,68 @@ pred draw_from_deck{
     }
 }
 
-pred valid_deck_to_pile[pile: Pile] {
-    pile.top_card.color != Deck.movable.color // have to alternate colors
-    pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
+pred valid_deck_to_pile {
+    some pile: Pile | {
+        pile.top_card.color != Deck.movable.color // have to alternate colors
+        pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
+    }
 }
 
-pred move_deck_to_pile[pile: Pile] {
-    //remove current movable card in deck
-    // change movable card in deck to an already flipped card, or nothing
-   // Deck.movable' in Deck.flipped or (#{Deck.flipped} = 0)
-    // add card to pile
-        valid_deck_to_pile[pile] implies {
-            Deck.movable' = Deck.movable.next
-            pile.top_card' = Deck.movable
-            //pile.unflipped' does the unflipped number icnrease?
-            #{pile.pile_flipped'} = #{pile.pile_flipped}
-            pile.id' = pile.id
-            Deck.flipped' = Deck.flipped - Deck.movable
-            Deck.unflipped' = Deck.unflipped
-        } else {
-            pile.top_card' = pile.top_card
-            pile.pile_flipped' = pile.pile_flipped
-            pile.pile_unflipped' = pile.pile_unflipped
-            Deck.flipped' = Deck.flipped
-            Deck.unflipped' = Deck.unflipped
-
-        }
-    Used.cards' = Used.cards            
+pred move_deck_to_pile {
+    some pile: Pile | {
+        pile.top_card.color != Deck.movable.color // have to alternate colors
+        pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
+    
+        Deck.movable' = Deck.movable.next
+        pile.top_card' = Deck.movable
+        //pile.unflipped' does the unflipped number icnrease?
+        #{pile.pile_flipped'} = #{pile.pile_flipped}
+        pile.id' = pile.id
+        Deck.flipped' = Deck.flipped - Deck.movable
+        Deck.unflipped' = Deck.unflipped
+    
+        Used.cards' = Used.cards       
+    }
 }
 
 // pred pile_to_pile {
 
 // }
 
-pred valid_pile_to_foundation {
+-- **WORKS
+pred valid_pile_to_foundation { 
+    // must be some pile and foundation that have matching suit and rank
     some pile: Pile, found: Foundation | {  
         found.found_suit = pile.top_card.suit
         found.highest_card = subtract[pile.top_card.rank, 1]
     }
 }
 
+-- **WORKS
 pred pile_to_foundation {
     some pile: Pile, found: Foundation | {
+
+        // guard that the correct pile is moving to the foundation
         found.found_suit = pile.top_card.suit
-        found.highest_card = subtract[pile.top_card.rank, 1]
+
+        // update the foundation highest card
         found.highest_card' = pile.top_card.rank 
+        
+        // if there is a next flipped card in the pile
         some pile.top_card.next => {
             pile.top_card' = pile.top_card.next
             pile.pile_unflipped' = pile.pile_unflipped
             pile.pile_flipped' = pile.pile_flipped - pile.top_card
             Used.cards' = Used.cards
         } else {
+            // if there is no more flipped cards in the pile and no more unflipped
             (pile.pile_unflipped = 0) => {
                 no pile.top_card'
                 Used.cards' = Used.cards
                 pile.pile_unflipped' = pile.pile_unflipped
                 #{pile.pile_flipped'} = 0
             } else {
+                // if there is no more flipped cards in the pile we need to flip over an unflipped card
                 pile.top_card' not in Used.cards
                 pile.top_card' in Used.cards'
                 pile.pile_unflipped' = subtract[pile.pile_unflipped,1]
@@ -243,6 +238,7 @@ pred pile_to_foundation {
             }
         }
 
+    //keep all the other piles the same
     all other_p: Pile | {
         other_p != pile implies {
             other_p.pile_flipped' = other_p.pile_flipped
@@ -250,76 +246,93 @@ pred pile_to_foundation {
             other_p.top_card' = other_p.top_card
         }  
     }
-
+    //keep all the other foundations the same
     all other_f: Foundation | {
         other_f != found implies {
             other_f.highest_card' = other_f.highest_card
+            }
         }
     }
-//}
-}
 
-    // keep everything else the same
+    // keep deck the same
     Deck.flipped' = Deck.flipped
     Deck.unflipped' = Deck.unflipped
     Deck.movable' = Deck.movable
 }
 
+-- **WORKS
 pred valid_deck_to_foundation{
-    
+    some found: Foundation | {  
+        // suit and value are equal for some foundation
+        found.found_suit = Deck.movable.suit
+        found.highest_card = subtract[Deck.movable.rank, 1]
+    }
 }
 
+-- **WORKS
 pred deck_to_foundation {
-    Deck.movable' = Deck.movable.next
-    all found: Foundation | {
-        found.found_suit = Deck.movable.suit => {
-            found.highest_card' = Deck.movable.rank 
-        }
-        else {
-            found.highest_card' = found.highest_card
+    some found: Foundation | { 
+        // guard
+        found.found_suit = Deck.movable.suit
+        found.highest_card = subtract[Deck.movable.rank, 1]
+
+        // update the foundation
+        found.highest_card' = Deck.movable.rank 
+          
+        // update the deck
+        Deck.flipped' = Deck.flipped  - Deck.movable
+        Deck.unflipped' = Deck.unflipped
+        Deck.movable' = Deck.movable.next
+
+        // All other foundations stay the same
+        all other_f: Foundation | {
+            other_f != found implies {
+                other_f.highest_card' = other_f.highest_card
+            }
         }
     }
-    Deck.flipped' = Deck.flipped - Deck.movable
-    Deck.unflipped' = Deck.unflipped
 
-
+    // keep all piles the same
     all pile: Pile | {
         pile.pile_flipped' = pile.pile_flipped
         pile.pile_unflipped' = pile.pile_unflipped
         pile.top_card' = pile.top_card
     }
-
+    
+    // used cards don't change
     Used.cards' = Used.cards
-
 }
 
 pred reset_deck {
-    // guard
+
+    // swap unflipped and flipped, no movable
     Deck.unflipped' = Deck.flipped
-    //#{Deck.flipped'} = 0
     Deck.flipped' = Deck.unflipped
     no Deck.movable' 
 
+    // all piles stay the same
     all pile: Pile | {
         pile.pile_flipped' = pile.pile_flipped
         pile.pile_unflipped' = pile.pile_unflipped
         pile.top_card' = pile.top_card
     }
 
+    // used cards stay the same
     Used.cards' = Used.cards
 
+    // foundation stays the same
     all found: Foundation | {
         found.highest_card' = found.highest_card
     }
-
-
 }
 
 pred game_over{
+
     winning_game or lost_game
 }
 
 pred winning_game {
+    // all foundations have desired target value
     all found: Foundation | {
         found.highest_card = 1
     }
@@ -371,17 +384,17 @@ pred move {
     //     draw_from_deck
     // }
 
-    // (Deck.movable.rank = 1) => {
-    //     deck_to_foundation
-    // } else {
-    //     draw_from_deck
-    // }
-
-    valid_pile_to_foundation => {
-        pile_to_foundation 
+    valid_deck_to_foundation => {
+        deck_to_foundation
     } else {
-        do_nothing 
+        draw_from_deck
     }
+
+    // valid_pile_to_foundation => {
+    //     pile_to_foundation 
+    // } else {
+    //     do_nothing 
+    // }
 
     // some pile: Pile, found: Foundation | {
     //     valid_pile_to_foundation[pile, found] 
@@ -397,7 +410,7 @@ pred move {
 
 // procedure: putting all the cards in Deck.flipped to Deck.unflipped
 
-// prioritizes moving from a deck to a pi
+// prioritizes moving from a deck to a pile
 pred foundation_strategy {
     valid_deck_to_foundation => {
         deck_to_foundation 
@@ -449,5 +462,4 @@ run {
    always{move}
    eventually {winning_game}
    // reset_deck
- } 
-for 5 Int, exactly 4 Pile, exactly 20 Card, exactly 4 Foundation // increase bit width?
+ } for 5 Int, exactly 4 Pile, exactly 20 Card, exactly 4 Foundation // increase bit width?

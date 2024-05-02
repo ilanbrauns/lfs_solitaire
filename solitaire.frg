@@ -1,5 +1,7 @@
 #lang forge/temporal
 
+option run_sterling "solitaire.js"
+
 option max_tracelength 10
 
 -- constants for card numbers

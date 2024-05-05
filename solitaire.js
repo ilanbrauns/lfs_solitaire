@@ -65,18 +65,8 @@ function visualizeState(inst, idx) {
   const colorField = instance.field("color");
 
   const pileItems = instance.signature("Pile").atoms();
-  const pileFlipped = inst
-    .signature("Pile")
-    .join(inst.field("pile_flipped"))
-    .tuples()
-    .map((tup) => tup.atoms().map((at) => at.id()))
-    .flat();
-  const pileUnflipped = inst
-    .signature("Pile")
-    .join(inst.field("pile_unflipped"))
-    .tuples()
-    .map((tup) => tup.atoms().map((at) => at.id()))
-    .flat();
+
+  const pileUnflipped = instance.field("pile_unflipped");
   const topCard = inst
     .signature("Pile")
     .join(inst.field("top_card"))
@@ -105,8 +95,6 @@ function visualizeState(inst, idx) {
     .flat();
 
   const foundationItems = instance.signature("Foundation").atoms();
-  const highestCard = instance.field("highest_card");
-  const foundSuit = instance.field("found_suit");
 
   const numberToSuitMap = {
     1: "Heart",
@@ -264,6 +252,16 @@ function visualizeState(inst, idx) {
   let foundation_y = -150;
 
   foundationItems.forEach((foundation) => {
+    const highestCard = foundation
+      .join(inst.field("highest_card"))
+      .tuples()
+      .map((tup) => tup.atoms().map((at) => at.id()))
+      .flat();
+    const foundSuit = foundation
+      .join(inst.field("found_suit"))
+      .tuples()
+      .map((tup) => tup.atoms().map((at) => at.id()))
+      .flat();
     group.add(
       { x: 0, y: 0 },
       new TextBox({
@@ -279,9 +277,9 @@ function visualizeState(inst, idx) {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Suit: ${numberToSuit(foundation.join(foundSuit))} `,
+        text: `Suit: ${numberToSuit(foundSuit)} `,
         coords: { x: foundation_x, y: foundation_y + 20 },
-        color: `${suitToColor(foundation.join(foundSuit))}`,
+        color: `${suitToColor(foundSuit)}`,
         fontSize: 16,
       })
     );
@@ -289,9 +287,9 @@ function visualizeState(inst, idx) {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Highest card: ${foundation.join(highestCard)} `,
+        text: `Highest card: ${highestCard} `,
         coords: { x: foundation_x, y: foundation_y + 40 },
-        color: `${suitToColor(foundation.join(foundSuit))}`,
+        color: `${suitToColor(foundSuit)}`,
         fontSize: 16,
       })
     );
@@ -304,88 +302,16 @@ function visualizeState(inst, idx) {
     }
   });
 
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `Unflipped: ${pileUnflipped.length} `,
-  //     coords: { x: foundation_x, y: foundation_y + 20},
-  //     color: `Black`,
-  //     fontSize: 16,
-  //   })
-  // );
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `Flipped: ${pileFlipped.length} `,
-  //     coords: { x: foundation_x, y: foundation_y + 40},
-  //     color: `Black`,
-  //     fontSize: 16,
-  //   })
-  // );
-
-  // // foundation highest card
-  // const highestCardStr = highestCard.toString()
-
-  // const highestCardNum = highestCardStr.substring(4,highestCard.length);
-  // const highestCardID = (cardItems[highestCardNu ] == undefined) ? "" :cardItems[highestCardNum]
-
-  // // const highestCard = (cardItems[topCardNum] == undefined) ? "" :numberToSuit(cardItems[topCardNum].join(suitField))
-  // // const topCardRank = (cardItems[topCardNum] == undefined) ? "" :cardItems[topCardNum].join(rankField)
-  // // const topCardColor = (cardItems[topCardNum] == undefined) ? "Black" :numberToColor(cardItems[topCardNum].join(colorField))
-
-  // // top card title
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `Top Card:`,
-  //     coords: { x: pile_x, y: pile_y + 60},
-  //     //color: `${topCardColor}`,
-  //     fontSize: 16,
-  //     fontWeight: 'bold'
-  //   })
-  // );
-
-  // // top card card id
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `${topCardID}`,
-  //     coords: { x: pile_x, y: pile_y + 80},
-  //     color: `${topCardColor}`,
-  //     fontSize: 16,
-  //   })
-  // );
-
-  // // top card suit
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `${topCardSuit}`,
-  //     coords: { x: pile_x, y: pile_y + 100},
-  //     color: `${topCardColor}`,
-  //     fontSize: 16,
-  //   })
-  // );
-
-  // // top card rank
-  // group.add({x:0, y:0},
-  //   new TextBox({
-  //     text: `${topCardRank}`,
-  //     coords: { x: pile_x, y: pile_y + 120},
-  //     color: `${topCardColor}`,
-  //     fontSize: 16,
-  //   })
-  // );
-
-  //   if (pile_x + 50 > 700) {
-  //     pile_x = 100;
-  //     pile_y += 100;
-  //   } else {
-  //     pile_x += 150;
-  //   }
-  //  });
-
   // piles
-
   let pile_x = -240;
   let pile_y = 10;
 
   pileItems.forEach((pile) => {
+    const pileFlipped = pile
+      .join(inst.field("pile_flipped"))
+      .tuples()
+      .map((tup) => tup.atoms().map((at) => at.id()))
+      .flat();
     group.add(
       { x: 0, y: 0 },
       new TextBox({
@@ -400,7 +326,7 @@ function visualizeState(inst, idx) {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Unflipped: ${pileUnflipped.length} `,
+        text: `Unflipped: ${pile.join(pileUnflipped)} `,
         coords: { x: pile_x, y: pile_y + 20 },
         color: `Black`,
         fontSize: 16,

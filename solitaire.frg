@@ -422,7 +422,7 @@ pred deck_to_foundation {
     }
 
     // keep all cards next var the same
-    all cards: Cards | {
+    all cards: Card | {
             cards.next' = cards.next
         }
     

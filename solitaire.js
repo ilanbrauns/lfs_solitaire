@@ -1,4 +1,6 @@
-const stage = new Stage();
+const stage = new Stage({
+  backgroundColor: "Green",
+});
 
 document.getElementById("svg-container").style.height = "1100%";
 
@@ -9,7 +11,7 @@ const stateLabelGridConfig = {
   },
   cell_size: {
     x_size: 100,
-    y_size: 300,
+    y_size: 350,
   },
   grid_dimensions: {
     y_size: instances.length,
@@ -40,7 +42,7 @@ const stateGridConfig = {
   },
   cell_size: {
     x_size: 600,
-    y_size: 300,
+    y_size: 350,
   },
   grid_dimensions: {
     y_size: instances.length,
@@ -63,11 +65,26 @@ function visualizeState(inst, idx) {
   const colorField = instance.field("color");
 
   const pileItems = instance.signature("Pile").atoms();
-  let pileFlipped = instance.field("pile_flipped");
-  let pileUnflipped = instance.field("pile_unflipped");
+  const pileFlipped = inst
+    .signature("Pile")
+    .join(inst.field("pile_flipped"))
+    .tuples()
+    .map((tup) => tup.atoms().map((at) => at.id()))
+    .flat();
+  const pileUnflipped = inst
+    .signature("Pile")
+    .join(inst.field("pile_unflipped"))
+    .tuples()
+    .map((tup) => tup.atoms().map((at) => at.id()))
+    .flat();
+  const topCard = inst
+    .signature("Pile")
+    .join(inst.field("top_card"))
+    .tuples()
+    .map((tup) => tup.atoms().map((at) => at.id()))
+    .flat();
 
   const deck = instance.signature("Deck");
-  //let movable = instance.field("movable");
   const deckUnflipped = inst
     .signature("Deck")
     .join(inst.field("unflipped"))
@@ -87,6 +104,10 @@ function visualizeState(inst, idx) {
     .map((tup) => tup.atoms().map((at) => at.id()))
     .flat();
 
+  const foundationItems = instance.signature("Foundation").atoms();
+  const highestCard = instance.field("highest_card");
+  const foundSuit = instance.field("found_suit");
+
   const numberToSuitMap = {
     1: "Heart",
     2: "Spade",
@@ -95,8 +116,15 @@ function visualizeState(inst, idx) {
   };
 
   const numberToColorMap = {
-    0: "Black",
+    0: "Blue",
     1: "Red",
+  };
+
+  const suitToColorMap = {
+    1: "Red",
+    2: "Blue",
+    3: "Blue",
+    4: "Red",
   };
 
   function numberToSuit(number) {
@@ -107,11 +135,12 @@ function visualizeState(inst, idx) {
     return numberToColorMap[number];
   }
 
+  function suitToColor(number) {
+    return suitToColorMap[number];
+  }
+
   let card_x = 100;
   let card_y = 200;
-
-  let pile_x = 100;
-  let pile_y = 100;
 
   const cardWidth = 50;
   const cardHeight = 70;
@@ -124,7 +153,7 @@ function visualizeState(inst, idx) {
     },
     cell_size: {
       x_size: 600,
-      y_size: 300,
+      y_size: 350,
     },
     grid_dimensions: {
       y_size: 1,
@@ -132,147 +161,334 @@ function visualizeState(inst, idx) {
     },
   });
 
+  // deck title
   group.add(
     { x: 0, y: 0 },
     new TextBox({
       text: `Deck`,
-      coords: { x: -240, y: -130 },
+      coords: { x: -250, y: -150 },
       color: "black",
-      border: { width: 10, color: "red" }, // Specify the border width and color
-
       fontSize: 20,
+      fontWeight: "bold",
     })
   );
 
+  // deck unflipped count
   group.add(
     { x: 0, y: 0 },
     new TextBox({
       text: `Unflipped: ${deckUnflipped.length} `,
-      coords: { x: -240, y: -110 },
+      coords: { x: -245, y: -130 },
       color: "black",
-      border: { width: 10, color: "red" }, // Specify the border width and color
-
       fontSize: 16,
     })
   );
 
+  // deck flipped count
   group.add(
     { x: 0, y: 0 },
     new TextBox({
       text: `Flipped: ${deckFlipped.length} `,
-      coords: { x: -240, y: -90 },
+      coords: { x: -245, y: -110 },
       color: "black",
-      border: { width: 10, color: "red" }, // Specify the border width and color
-
       fontSize: 16,
     })
   );
 
-  let text = "";
-  cardItems.forEach((card) => {
-    //text = movable
-    text = movable === card.id() ? "L" : "";
-  });
+  // deck current movable
+  const movableString = movable.toString();
+  const movCardNum = movableString.substring(4, movableString.length);
+  const movableCard =
+    cardItems[movCardNum] == undefined ? "" : cardItems[movCardNum];
+  const movableSuit =
+    cardItems[movCardNum] == undefined
+      ? ""
+      : numberToSuit(cardItems[movCardNum].join(suitField));
+  const movableRank =
+    cardItems[movCardNum] == undefined
+      ? ""
+      : cardItems[movCardNum].join(rankField);
+  const movableColor =
+    cardItems[movCardNum] == undefined
+      ? "Black"
+      : numberToColor(cardItems[movCardNum].join(colorField));
 
-  group.add(
-    { x: 0, y: 0 },
-
-    new TextBox({
-      // text: `Movable: ${cardItems[0].join(rankField)} `,
-      text: `Movable: ${text} `,
-
-      coords: { x: -230, y: -70 },
-      color: "black",
-      border: { width: 10, color: "red" }, // Specify the border width and color
-
-      fontSize: 16,
-    })
-  );
+  // movable title
   group.add(
     { x: 0, y: 0 },
     new TextBox({
-      text: `Flipped: ${deckFlipped.length} `,
-      coords: { x: -240, y: -90 },
-      color: "black",
-      border: { width: 10, color: "red" }, // Specify the border width and color
+      text: `Movable:`,
+      coords: { x: -245, y: -90 },
+      color: `${movableColor}`,
+      fontSize: 16,
+      fontWeight: "bold",
+    })
+  );
 
+  // movable card id
+  group.add(
+    { x: 0, y: 0 },
+    new TextBox({
+      text: `${movableCard}`,
+      coords: { x: -245, y: -70 },
+      color: `${movableColor}`,
       fontSize: 16,
     })
   );
 
-  cardItems.forEach((card) => {
-    //textContent += `${card.join(suitField)} `;
-    group.add(
-      { x: 0, y: 0 },
-      new TextBox({
-        text: ` ${card} `,
-        coords: { x: card_x, y: card_y },
-        color: `${numberToColor(card.join(colorField))}`,
-        border: { width: 10, color: "red" }, // Specify the border width and color
+  // movable suit
+  group.add(
+    { x: 0, y: 0 },
+    new TextBox({
+      text: `${movableSuit}`,
+      coords: { x: -245, y: -50 },
+      color: `${movableColor}`,
+      fontSize: 16,
+    })
+  );
 
-        fontSize: 16,
-      })
-    );
+  // movable rank
+  group.add(
+    { x: 0, y: 0 },
+    new TextBox({
+      text: `${movableRank}`,
+      coords: { x: -245, y: -30 },
+      color: `${movableColor}`,
+      fontSize: 16,
+    })
+  );
+
+  // foundations
+
+  let foundation_x = -130;
+  let foundation_y = -150;
+
+  foundationItems.forEach((foundation) => {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `${numberToSuit(card.join(suitField))} `,
-        coords: { x: card_x, y: card_y + 20 },
-        color: `${numberToColor(card.join(colorField))}`,
-        border: { width: 10, color: "#FFFFFF" }, // Specify the border width and color
+        text: ` ${foundation} `,
+        coords: { x: foundation_x, y: foundation_y },
+        color: `Black`,
         fontSize: 16,
+        fontWeight: "bold",
       })
     );
+
+    const foundationSuit = foundSuit.toString();
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `${card.join(rankField)} `,
-        coords: { x: card_x, y: card_y + 40 },
-        color: `${numberToColor(card.join(colorField))}`,
+        text: `Suit: ${numberToSuit(foundation.join(foundSuit))} `,
+        coords: { x: foundation_x, y: foundation_y + 20 },
+        color: `${suitToColor(foundation.join(foundSuit))}`,
         fontSize: 16,
       })
     );
-    //
-    if (card_x + 50 > 700) {
-      card_x = 100;
-      card_y += 100;
+
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `Highest card: ${foundation.join(highestCard)} `,
+        coords: { x: foundation_x, y: foundation_y + 40 },
+        color: `${suitToColor(foundation.join(foundSuit))}`,
+        fontSize: 16,
+      })
+    );
+
+    if (foundation_x + 50 > 700) {
+      foundation_x = 100;
+      foundation_y += 100;
     } else {
-      card_x += 75;
+      foundation_x += 123;
     }
   });
 
-  // for (let i = pileItems.length - 1; i >= 0; i--) {
-  //   const pile = pileItems[i];
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `Unflipped: ${pileUnflipped.length} `,
+  //     coords: { x: foundation_x, y: foundation_y + 20},
+  //     color: `Black`,
+  //     fontSize: 16,
+  //   })
+  // );
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `Flipped: ${pileFlipped.length} `,
+  //     coords: { x: foundation_x, y: foundation_y + 40},
+  //     color: `Black`,
+  //     fontSize: 16,
+  //   })
+  // );
 
-  //   stage.add(
-  //     new TextBox({
-  //       text: ` ${pile} `,
-  //       coords: { x: pile_x, y: pile_y },
-  //       color: `black`,
-  //       fontSize: 16,
-  //     })
-  //   );
+  // // foundation highest card
+  // const highestCardStr = highestCard.toString()
 
-  //   stage.add(
-  //     new TextBox({
-  //       text: `Flipped: ${pile.join(pileFlipped)} `,
-  //       coords: { x: pile_x, y: pile_y + 20 },
-  //       color: `black`,
-  //       fontSize: 16,
-  //     })
-  //   );
+  // const highestCardNum = highestCardStr.substring(4,highestCard.length);
+  // const highestCardID = (cardItems[highestCardNu ] == undefined) ? "" :cardItems[highestCardNum]
 
-  //   stage.add(
-  //     new TextBox({
-  //       text: ` # Unflipped: ${pile.join(pileUnflipped)} `,
-  //       coords: { x: pile_x, y: pile_y + 40 },
-  //       color: `black`,
-  //       fontSize: 16,
-  //     })
-  //   );
+  // // const highestCard = (cardItems[topCardNum] == undefined) ? "" :numberToSuit(cardItems[topCardNum].join(suitField))
+  // // const topCardRank = (cardItems[topCardNum] == undefined) ? "" :cardItems[topCardNum].join(rankField)
+  // // const topCardColor = (cardItems[topCardNum] == undefined) ? "Black" :numberToColor(cardItems[topCardNum].join(colorField))
 
-  //   pile_x += 150;
-  // };
+  // // top card title
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `Top Card:`,
+  //     coords: { x: pile_x, y: pile_y + 60},
+  //     //color: `${topCardColor}`,
+  //     fontSize: 16,
+  //     fontWeight: 'bold'
+  //   })
+  // );
+
+  // // top card card id
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `${topCardID}`,
+  //     coords: { x: pile_x, y: pile_y + 80},
+  //     color: `${topCardColor}`,
+  //     fontSize: 16,
+  //   })
+  // );
+
+  // // top card suit
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `${topCardSuit}`,
+  //     coords: { x: pile_x, y: pile_y + 100},
+  //     color: `${topCardColor}`,
+  //     fontSize: 16,
+  //   })
+  // );
+
+  // // top card rank
+  // group.add({x:0, y:0},
+  //   new TextBox({
+  //     text: `${topCardRank}`,
+  //     coords: { x: pile_x, y: pile_y + 120},
+  //     color: `${topCardColor}`,
+  //     fontSize: 16,
+  //   })
+  // );
+
+  //   if (pile_x + 50 > 700) {
+  //     pile_x = 100;
+  //     pile_y += 100;
+  //   } else {
+  //     pile_x += 150;
+  //   }
+  //  });
+
+  // piles
+
+  let pile_x = -240;
+  let pile_y = 10;
+
+  pileItems.forEach((pile) => {
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: ` ${pile} `,
+        coords: { x: pile_x, y: pile_y },
+        color: `Black`,
+        fontSize: 16,
+        fontWeight: "bold",
+      })
+    );
+
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `Unflipped: ${pileUnflipped.length} `,
+        coords: { x: pile_x, y: pile_y + 20 },
+        color: `Black`,
+        fontSize: 16,
+      })
+    );
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `Flipped: ${pileFlipped.length} `,
+        coords: { x: pile_x, y: pile_y + 40 },
+        color: `Black`,
+        fontSize: 16,
+      })
+    );
+
+    // pile top card
+    const topCardStr = topCard.toString();
+
+    const topCardNum = topCardStr.substring(4, topCard.length);
+    const topCardID =
+      cardItems[topCardNum] == undefined ? "" : cardItems[topCardNum];
+
+    const topCardSuit =
+      cardItems[topCardNum] == undefined
+        ? ""
+        : numberToSuit(cardItems[topCardNum].join(suitField));
+    const topCardRank =
+      cardItems[topCardNum] == undefined
+        ? ""
+        : cardItems[topCardNum].join(rankField);
+    const topCardColor =
+      cardItems[topCardNum] == undefined
+        ? "Black"
+        : numberToColor(cardItems[topCardNum].join(colorField));
+
+    // top card title
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `Top Card:`,
+        coords: { x: pile_x, y: pile_y + 60 },
+        color: `${topCardColor}`,
+        fontSize: 16,
+        fontWeight: "bold",
+      })
+    );
+
+    // top card card id
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `${topCardID}`,
+        coords: { x: pile_x, y: pile_y + 80 },
+        color: `${topCardColor}`,
+        fontSize: 16,
+      })
+    );
+
+    // top card suit
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `${topCardSuit}`,
+        coords: { x: pile_x, y: pile_y + 100 },
+        color: `${topCardColor}`,
+        fontSize: 16,
+      })
+    );
+
+    // top card rank
+    group.add(
+      { x: 0, y: 0 },
+      new TextBox({
+        text: `${topCardRank}`,
+        coords: { x: pile_x, y: pile_y + 120 },
+        color: `${topCardColor}`,
+        fontSize: 16,
+      })
+    );
+
+    if (pile_x + 50 > 700) {
+      pile_x = 100;
+      pile_y += 100;
+    } else {
+      pile_x += 150;
+    }
+  });
+
   return group;
 }
 

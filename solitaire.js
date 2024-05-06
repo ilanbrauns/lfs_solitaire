@@ -23,11 +23,11 @@ const stateLabelsGrid = new Grid(stateLabelGridConfig);
 
 // For every instance, place a visualization in the proper grid location
 instances.forEach((inst, idx) => {
-  const lb = idx == loopBack ? " (loopback)" : "";
+  //const lb = idx == loopBack ? " (loopback)" : "";
   stateLabelsGrid.add(
     { x: 0, y: idx },
     new TextBox({
-      text: `State:${idx}${lb}`,
+      text: `State: ${idx}`,
       coords: { x: 0, y: 0 },
       color: "black",
       fontSize: 16,
@@ -67,12 +67,6 @@ function visualizeState(inst, idx) {
   const pileItems = instance.signature("Pile").atoms();
 
   const pileUnflipped = instance.field("pile_unflipped");
-  const topCard = inst
-    .signature("Pile")
-    .join(inst.field("top_card"))
-    .tuples()
-    .map((tup) => tup.atoms().map((at) => at.id()))
-    .flat();
 
   const deck = instance.signature("Deck");
   const deckUnflipped = inst
@@ -207,31 +201,32 @@ function visualizeState(inst, idx) {
     new TextBox({
       text: `Movable:`,
       coords: { x: -245, y: -90 },
-      color: `${movableColor}`,
+      color: "Black",
       fontSize: 16,
       fontWeight: "bold",
     })
   );
 
   // movable card id
-  group.add(
-    { x: 0, y: 0 },
-    new TextBox({
-      text: `${movableCard}`,
-      coords: { x: -245, y: -70 },
-      color: `${movableColor}`,
-      fontSize: 16,
-    })
-  );
+  // group.add(
+  //   { x: 0, y: 0 },
+  //   new TextBox({
+  //     text: `${movableCard}`,
+  //     coords: { x: -245, y: -70 },
+  //     color: `${movableColor}`,
+  //     fontSize: 16,
+  //   })
+  // );
 
   // movable suit
   group.add(
     { x: 0, y: 0 },
     new TextBox({
       text: `${movableSuit}`,
-      coords: { x: -245, y: -50 },
+      coords: { x: -245, y: -60 },
       color: `${movableColor}`,
-      fontSize: 16,
+      fontSize: 20,
+      fontWeight: "bold",
     })
   );
 
@@ -242,7 +237,8 @@ function visualizeState(inst, idx) {
       text: `${movableRank}`,
       coords: { x: -245, y: -30 },
       color: `${movableColor}`,
-      fontSize: 16,
+      fontSize: 20,
+      fontWeight: "bold",
     })
   );
 
@@ -277,20 +273,24 @@ function visualizeState(inst, idx) {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Suit: ${numberToSuit(foundSuit)} `,
-        coords: { x: foundation_x, y: foundation_y + 20 },
+        text: `${numberToSuit(foundSuit)} `,
+        coords: { x: foundation_x, y: foundation_y + 30 },
         color: `${suitToColor(foundSuit)}`,
-        fontSize: 16,
+        fontSize: 20,
+        fontWeight: "bold",
       })
     );
+
+    const found_display = highestCard == 0 ? "" : highestCard;
 
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Highest card: ${highestCard} `,
-        coords: { x: foundation_x, y: foundation_y + 40 },
+        text: `${found_display} `,
+        coords: { x: foundation_x, y: foundation_y + 60 },
         color: `${suitToColor(foundSuit)}`,
-        fontSize: 16,
+        fontSize: 20,
+        fontWeight: "bold",
       })
     );
 
@@ -304,9 +304,11 @@ function visualizeState(inst, idx) {
 
   // piles
   let pile_x = -240;
-  let pile_y = 10;
+  let pile_y = 20;
 
-  pileItems.forEach((pile) => {
+  for (let i = pileItems.length - 1; i >= 0; i--) {
+    pile = pileItems[i];
+
     const pileFlipped = pile
       .join(inst.field("pile_flipped"))
       .tuples()
@@ -342,12 +344,17 @@ function visualizeState(inst, idx) {
       })
     );
 
+    const topCard = pile
+      .join(inst.field("top_card"))
+      .tuples()
+      .map((tup) => tup.atoms().map((at) => at.id()))
+      .flat();
     // pile top card
     const topCardStr = topCard.toString();
 
-    const topCardNum = topCardStr.substring(4, topCard.length);
+    const topCardNum = topCardStr.substring(4, topCardStr.length);
     const topCardID =
-      cardItems[topCardNum] == undefined ? "" : cardItems[topCardNum];
+      cardItems[topCardNum] == undefined ? topCardNum : cardItems[topCardNum];
 
     const topCardSuit =
       cardItems[topCardNum] == undefined
@@ -368,31 +375,32 @@ function visualizeState(inst, idx) {
       new TextBox({
         text: `Top Card:`,
         coords: { x: pile_x, y: pile_y + 60 },
-        color: `${topCardColor}`,
+        color: "Black",
         fontSize: 16,
         fontWeight: "bold",
       })
     );
 
     // top card card id
-    group.add(
-      { x: 0, y: 0 },
-      new TextBox({
-        text: `${topCardID}`,
-        coords: { x: pile_x, y: pile_y + 80 },
-        color: `${topCardColor}`,
-        fontSize: 16,
-      })
-    );
+    // group.add(
+    //   { x: 0, y: 0 },
+    //   new TextBox({
+    //     text: `${topCardID}`,
+    //     coords: { x: pile_x, y: pile_y + 80 },
+    //     color: `${topCardColor}`,
+    //     fontSize: 16,
+    //   })
+    // );
 
     // top card suit
     group.add(
       { x: 0, y: 0 },
       new TextBox({
         text: `${topCardSuit}`,
-        coords: { x: pile_x, y: pile_y + 100 },
+        coords: { x: pile_x, y: pile_y + 90 },
         color: `${topCardColor}`,
-        fontSize: 16,
+        fontSize: 20,
+        fontWeight: "bold",
       })
     );
 
@@ -403,7 +411,8 @@ function visualizeState(inst, idx) {
         text: `${topCardRank}`,
         coords: { x: pile_x, y: pile_y + 120 },
         color: `${topCardColor}`,
-        fontSize: 16,
+        fontSize: 20,
+        fontWeight: "bold",
       })
     );
 
@@ -413,7 +422,7 @@ function visualizeState(inst, idx) {
     } else {
       pile_x += 150;
     }
-  });
+  }
 
   return group;
 }

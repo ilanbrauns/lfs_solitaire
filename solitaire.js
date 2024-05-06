@@ -66,8 +66,6 @@ function visualizeState(inst, idx) {
 
   const pileItems = instance.signature("Pile").atoms();
 
-  const pileUnflipped = instance.field("pile_unflipped");
-
   const deck = instance.signature("Deck");
   const deckUnflipped = inst
     .signature("Deck")
@@ -314,6 +312,13 @@ function visualizeState(inst, idx) {
       .tuples()
       .map((tup) => tup.atoms().map((at) => at.id()))
       .flat();
+
+    const pileUnflipped = pile
+      .join(inst.field("pile_unflipped"))
+      .tuples()
+      .map((tup) => tup.atoms().map((at) => at.id()))
+      .flat();
+
     group.add(
       { x: 0, y: 0 },
       new TextBox({
@@ -328,7 +333,7 @@ function visualizeState(inst, idx) {
     group.add(
       { x: 0, y: 0 },
       new TextBox({
-        text: `Unflipped: ${pile.join(pileUnflipped)} `,
+        text: `Unflipped: ${pileUnflipped} `,
         coords: { x: pile_x, y: pile_y + 20 },
         color: `Black`,
         fontSize: 16,

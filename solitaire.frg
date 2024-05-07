@@ -2,7 +2,7 @@
 
 option run_sterling "solitaire.js"
 
-option max_tracelength 13
+option max_tracelength 20
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 6 }
@@ -114,16 +114,16 @@ pred wellformed_card {
 
 pred wellformed_deck {
     // cards in a deck must not be anywhere else
-    // some Deck.movable implies {
-    //     // Deck.movable in Used.cards
-    //     Deck.movable not in Deck.unflipped
-    //     Deck.movable in Deck.flipped
-    // }
+    some Deck.movable implies {
+        // Deck.movable in Used.cards
+        Deck.movable not in Deck.unflipped
+        Deck.movable in Deck.flipped
+    }
 
-    // // non-empty deck must have some movable card
-    // #{Deck.flipped} > 0  implies some Deck.movable
-    // // never exceeds 13 cards
-    // #{Deck.unflipped} < 7
+    // non-empty deck must have some movable card
+    #{Deck.flipped} > 0  implies some Deck.movable
+    // never exceeds 13 cards
+    #{Deck.unflipped} < 7
     
 }
 
@@ -160,8 +160,8 @@ pred valid_draw_from_deck {
 
 -- **WORKS**
 pred draw_from_deck{
-    Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
+    Deck.movable'.next' = Deck.movable // new movable's next is old movable
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
    
@@ -177,7 +177,7 @@ pred draw_from_deck{
     }
     // keep all cards next var the same
     all other_c: Card | {
-        (other_c.rank != Deck.movable.rank and other_c.suit != Deck.movable.suit) implies {
+        (other_c.rank != Deck.movable'.rank or other_c.suit != Deck.movable'.suit) implies {
             other_c.next' = other_c.next
         }
     }
@@ -207,9 +207,9 @@ pred reset_deck {
     }
 
     // keep all cards next var the same
-    // all cards: Card | {
-    //     cards.next' = cards.next
-    //     }
+    all cards: Card | {
+        cards.next' = cards.next
+        }
 }
 
 -- **WORKS**
@@ -230,8 +230,7 @@ pred deck_to_pile {
         pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
         
         // update the deck
-        // FIX THISSSSSSSSSS ENTIRE NEXT DOES NOT WORK IF THIS IS COMMENTED OUT
-        // Deck.movable' = Deck.movable.next // fine if movable is none
+        some Deck.movable.next implies Deck.movable' = Deck.movable.next else no Deck.movable' // fine if movable is none
         Deck.flipped' = Deck.flipped - Deck.movable
         Deck.unflipped' = Deck.unflipped
 
@@ -239,11 +238,11 @@ pred deck_to_pile {
         pile.pile_flipped' = pile.pile_flipped + Deck.movable 
         pile.pile_unflipped' = pile.pile_unflipped
         pile.top_card' = Deck.movable
-       // pile.top_card'.next = pile.top_card
+        pile.top_card'.next' = pile.top_card
             
         // keep all the other piles the same
         all other_p: Pile | {
-            other_p != pile implies {
+            other_p.id != pile.id implies {
                 other_p.pile_flipped' = other_p.pile_flipped
                 other_p.pile_unflipped' = other_p.pile_unflipped
                 other_p.top_card' = other_p.top_card
@@ -251,7 +250,7 @@ pred deck_to_pile {
         }  
         // keep all cards next var the same
     all other_c: Card | {
-        (other_c.rank != Deck.movable.rank and other_c.suit != Deck.movable.suit) implies {
+        (other_c.rank != pile.top_card'.rank or other_c.suit != pile.top_card'.suit) implies {
             other_c.next' = other_c.next
         }
     }
@@ -285,7 +284,7 @@ pred pile_to_pile {
 
         // pile 2 updates 
         pile2.top_card' = pile1.top_card
-       // pile2.top_card.next' = pile2.top_card
+        pile2.top_card'.next' = pile2.top_card
         pile2.pile_unflipped' = pile2.pile_unflipped
         pile2.pile_flipped' = pile2.pile_flipped + pile1.top_card
 
@@ -483,7 +482,7 @@ pred deck_to_foundation {
 pred winning_game {
     // all foundations have desired target value
     all found: Foundation | {
-        found.highest_card = 1
+        found.highest_card = 2
     }
 }
 
@@ -546,11 +545,10 @@ pred move {
     //     do_nothing 
     // }
 
-    valid_draw_from_deck => {
-       draw_from_deck
+    valid_deck_to_pile => {
+       deck_to_pile
     } else {
-       // do_nothing
-        reset_deck
+        draw_from_deck
     }
 
     // valid_deck_to_pile => {
@@ -613,10 +611,11 @@ pred foundation_strategy {
 run {
     always{wellformed}
     initial
-    always{move}
-    //eventually {game_over}
+    always{foundation_strategy}
+    eventually{game_over}
     //eventually {Deck.unflipped}
-    eventually {#{Deck.unflipped} = 0}
+    // eventually {#{Deck.unflipped} = 4}    
+    // eventually {#{Deck.flipped} = 2}
     //     some p: Pile | {
     //         #{p.pile_flipped} = 0
     //         p.pile_unflipped = 0

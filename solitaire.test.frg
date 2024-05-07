@@ -275,3 +275,26 @@ open "solitaire.frg"
 //         } is unsat
 //     }
 // }
+
+
+test suite for random_tests{
+    test expect {
+        // draw_from_deck_until_empty:{
+        //     always{wellformed}
+        //     initial
+        //     always{valid_draw_from_deck => {draw_from_deck} else {reset_deck}}
+        //     eventually {#{Deck.unflipped} = 0}
+
+        // } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+
+        move_to_pile_til_deck_empty:{
+            always{wellformed}
+            initial
+            always{valid_deck_to_pile => {deck_to_pile} else {draw_from_deck}}
+            eventually {#{Deck.unflipped} = 4}
+            eventually {#{Deck.flipped} = 2}
+
+        } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+
+    }
+}

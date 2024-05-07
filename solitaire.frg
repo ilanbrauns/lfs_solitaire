@@ -99,9 +99,9 @@ pred wellformed_card {
         card.suit > 0 && card.suit < 5
 
         // a card's next can't be itself
-      //  card.next != card
+        card.next != card
 
-        card not in Used.cards implies no card.next // a card can only have a next if it's been flipped over
+       // card not in Used.cards implies no card.next // a card can only have a next if it's been flipped over
 
        (card.suit = 1 or card.suit = 4) implies card.color = 1      
        (card.suit = 2 or card.suit = 3) implies card.color = 0
@@ -144,12 +144,12 @@ pred wellformed_piles {
         }
     }
 
-    // all disj pile1, pile2: Pile | {
-    //     all card: Card | {
-    //         card in pile1.pile_flipped implies card not in pile2.pile_flipped
-    //         card in pile2.pile_flipped implies card not in pile1.pile_flipped
-    //     } 
-    // }
+    all disj pile1, pile2: Pile | {
+        all card: Card | {
+            card in pile1.pile_flipped implies card not in pile2.pile_flipped
+            card in pile2.pile_flipped implies card not in pile1.pile_flipped
+        } 
+    }
 }
 
 -- **WORKS**
@@ -159,28 +159,27 @@ pred valid_draw_from_deck {
 
 -- **WORKS**
 pred draw_from_deck{
-    // (wasn't working ?): 
-    some Deck.movable implies Deck.movable'.next = Deck.movable // new movable's next is old movable
+    Deck.movable'.next = Deck.movable // new movable's next is old movable
     Deck.movable' in Deck.unflipped // the new movable card came from the deck's unflipped pile
     Deck.flipped' = Deck.flipped + Deck.movable' // add new movable to flipped
     Deck.unflipped' = Deck.unflipped - Deck.movable' // remove new movable from unflipped
    
-    // Deck.movable' not in Used.cards implies Used.cards' = Used.cards + Deck.movable'
+    Deck.movable' not in Used.cards implies Used.cards' = Used.cards + Deck.movable'
     
-    // all pile: Pile | {
-    //     pile.pile_flipped' = pile.pile_flipped
-    //     pile.pile_unflipped' = pile.pile_unflipped
-    //     pile.top_card' = pile.top_card
-    // }
-    // all found: Foundation | {
-    //     found.highest_card' = found.highest_card
-    // }
-    // // keep all cards next var the same
-    // all other_c: Card | {
-    //     other_c != Deck.movable' implies {
-    //         other_c.next' = other_c.next
-    //     }
-    // }
+    all pile: Pile | {
+        pile.pile_flipped' = pile.pile_flipped
+        pile.pile_unflipped' = pile.pile_unflipped
+        pile.top_card' = pile.top_card
+    }
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
+    // keep all cards next var the same
+    all other_c: Card | {
+        other_c != Deck.movable implies {
+            other_c.next' = other_c.next
+        }
+    }
 }
 
 -- **READY TO TEST**
@@ -538,19 +537,19 @@ pred move {
     //     draw_from_deck
     // }
 
-        draw_from_deck
+       // draw_from_deck
     // valid_pile_to_foundation => {
     //     pile_to_foundation 
     // } else {
     //     do_nothing 
     // }
 
-    //valid_draw_from_deck => {
-       // draw_from_deck
-    // } else {
-    //     do_nothing
-    //     // reset_deck
-    // }
+    valid_draw_from_deck => {
+       draw_from_deck
+    } else {
+       // do_nothing
+        reset_deck
+    }
 
     // some pile: Pile, found: Foundation | {
     //     valid_pile_to_foundation[pile, found] 

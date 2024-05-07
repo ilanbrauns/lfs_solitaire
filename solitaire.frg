@@ -2,7 +2,7 @@
 
 option run_sterling "solitaire.js"
 
-option max_tracelength 10
+option max_tracelength 13
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 6 }
@@ -64,17 +64,9 @@ pred initial {
     // only 3 cards used to start
     #{Used.cards} = 3
     #{Deck.flipped} = 0
-    #{Deck.unflipped} = DECK_SIZE
+    #{Deck.unflipped} = 6
     no Deck.movable
 }   
-
-// general well formedness for all different sigs
-pred wellformed {
-    wellformed_card
-    wellformed_deck
-    wellformed_piles
-    wellformed_foundation
-}
 
 pred wellformed_foundation {
     // no two foundations have the same suit
@@ -101,7 +93,7 @@ pred wellformed_card {
         // a card's next can't be itself
         card.next != card
 
-       //some card.next iff card in Used.cards  // a card can only have a next if it's been flipped over
+       // some card.next iff card in Used.cards  // a card can only have a next if it's been flipped over
 
        (card.suit = 1 or card.suit = 4) implies card.color = 1      
        (card.suit = 2 or card.suit = 3) implies card.color = 0
@@ -127,10 +119,10 @@ pred wellformed_deck {
         Deck.movable in Deck.flipped
     }
 
-    // non-empty deck must have some movable card
-   // #{Deck.flipped} > 0  implies some Deck.movable
-    // never exceeds 13 cards
-    #{Deck.unflipped} < 7
+    // // non-empty deck must have some movable card
+    // #{Deck.flipped} > 0  implies some Deck.movable
+    // // never exceeds 13 cards
+    // #{Deck.unflipped} < 7
     
 }
 
@@ -150,6 +142,14 @@ pred wellformed_piles {
             card in pile2.pile_flipped implies card not in pile1.pile_flipped
         } 
     }
+}
+
+// general well formedness for all different sigs
+pred wellformed {
+    wellformed_card
+    wellformed_deck
+    wellformed_piles
+    wellformed_foundation
 }
 
 -- **WORKS**
@@ -176,9 +176,9 @@ pred draw_from_deck{
     }
     // keep all cards next var the same
     all other_c: Card | {
-        //other_c != Deck.movable implies {
+        (other_c.rank != Deck.movable.rank and other_c.suit != Deck.movable.suit) implies {
             other_c.next' = other_c.next
-        //}
+        }
     }
 }
 
@@ -229,7 +229,8 @@ pred deck_to_pile {
         pile.top_card.rank = add[Deck.movable.rank, 1] // need to place a card on a value one higher
         
         // update the deck
-       // Deck.movable' = Deck.movable.next // fine if movable is none
+        // FIX THISSSSSSSSSS ENTIRE NEXT DOES NOT WORK IF THIS IS COMMENTED OUT
+        // Deck.movable' = Deck.movable.next // fine if movable is none
         Deck.flipped' = Deck.flipped - Deck.movable
         Deck.unflipped' = Deck.unflipped
 
@@ -247,12 +248,12 @@ pred deck_to_pile {
                 other_p.top_card' = other_p.top_card
             }  
         }  
-        // keep all cards next var the same besides one being moved
-        // all other_c: Card | {
-        //     //other_c != pile.top_card' implies {
-        //         other_c.next' = other_c.next
-        //    // }
-        // }
+        // keep all cards next var the same
+    all other_c: Card | {
+        (other_c.rank != Deck.movable.rank and other_c.suit != Deck.movable.suit) implies {
+            other_c.next' = other_c.next
+        }
+    }
 
     }
 
@@ -478,11 +479,6 @@ pred deck_to_foundation {
     Used.cards' = Used.cards
 }
 
-pred game_over{
-    winning_game
-    // winning_game or lost_game
-}
-
 -- **UPDATE TO BE REAL GAME WON**
 pred winning_game {
     // all foundations have desired target value
@@ -494,6 +490,11 @@ pred winning_game {
 -- **LOTS OF QUESTIONS HERE**
 pred lost_game{
     not winning_game and not (valid_deck_to_foundation or valid_pile_to_foundation or valid_deck_to_pile)
+}
+
+pred game_over{
+    winning_game
+    // winning_game or lost_game
 }
 
 -- **WORKS**

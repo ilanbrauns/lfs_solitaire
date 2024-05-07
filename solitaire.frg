@@ -59,6 +59,7 @@ pred initial {
      // cards in unflipped can't be used 
     all card: Card | {
         card in Deck.unflipped implies card not in Used.cards
+        no card.next
     }
     
     // only 3 cards used to start
@@ -113,11 +114,11 @@ pred wellformed_card {
 
 pred wellformed_deck {
     // cards in a deck must not be anywhere else
-    some Deck.movable implies {
-        // Deck.movable in Used.cards
-        Deck.movable not in Deck.unflipped
-        Deck.movable in Deck.flipped
-    }
+    // some Deck.movable implies {
+    //     // Deck.movable in Used.cards
+    //     Deck.movable not in Deck.unflipped
+    //     Deck.movable in Deck.flipped
+    // }
 
     // // non-empty deck must have some movable card
     // #{Deck.flipped} > 0  implies some Deck.movable
@@ -238,8 +239,8 @@ pred deck_to_pile {
         pile.pile_flipped' = pile.pile_flipped + Deck.movable 
         pile.pile_unflipped' = pile.pile_unflipped
         pile.top_card' = Deck.movable
-        pile.top_card'.next = pile.top_card
-
+       // pile.top_card'.next = pile.top_card
+            
         // keep all the other piles the same
         all other_p: Pile | {
             other_p != pile implies {
@@ -254,7 +255,6 @@ pred deck_to_pile {
             other_c.next' = other_c.next
         }
     }
-
     }
 
 
@@ -546,18 +546,18 @@ pred move {
     //     do_nothing 
     // }
 
-    // valid_draw_from_deck => {
-    //    draw_from_deck
-    // } else {
-    //    // do_nothing
-    //     reset_deck
-    // }
-
-    valid_deck_to_pile => {
-        deck_to_pile
+    valid_draw_from_deck => {
+       draw_from_deck
     } else {
-        draw_from_deck
+       // do_nothing
+        reset_deck
     }
+
+    // valid_deck_to_pile => {
+    //     deck_to_pile
+    // } else {
+    //     draw_from_deck
+    // }
 
     // some pile: Pile, found: Foundation | {
     //     valid_pile_to_foundation[pile, found] 

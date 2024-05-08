@@ -296,5 +296,13 @@ test suite for random_tests{
 
         } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
 
+        move_until_game_over:{
+            always{wellformed}
+            initial
+            always{foundation_strategy}
+            eventually {game_over}
+
+        } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+
     }
 }

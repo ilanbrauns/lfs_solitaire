@@ -2,11 +2,11 @@
 
 option run_sterling "solitaire.js"
 
-option max_tracelength 20
+option max_tracelength 10
 
 -- constants for card numbers
-fun DECK_SIZE: one Int { 6 }
-fun NUM_CARDS: one Int { 12 } 
+fun DECK_SIZE: one Int { 2 }
+fun NUM_CARDS: one Int { 8 } 
 
 
 sig Card {
@@ -38,6 +38,23 @@ sig Foundation {
     found_suit: one Int
 }
 
+inst optimizer {
+    Card = `Card1 + `Card2 + `Card3 + `Card4 + `Card5 + `Card6 + `Card7 + `Card8
+    Pile = `Pile1 + `Pile2
+
+    -- Just 2 board states (don't name the atoms the same as the sigs)
+    PuzzleState = `PuzzleState0
+    SolvedState = `SolvedState0
+    BoardState = PuzzleState + SolvedState
+    -- Upper-bound on the board relation: don't even try to use
+    -- a row, column, or value that's outside the interval [1, 9]
+    board in BoardState -> 
+             (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9) -> 
+             (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9) -> 
+             (1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9)
+
+}
+
 
 pred initial {
     all found : Foundation | {
@@ -65,7 +82,7 @@ pred initial {
     // only 3 cards used to start
     #{Used.cards} = 3
     #{Deck.flipped} = 0
-    #{Deck.unflipped} = 6
+    #{Deck.unflipped} = DECK_SIZE
     no Deck.movable
 }   
 
@@ -75,36 +92,40 @@ pred wellformed_foundation {
         found1.found_suit != found2.found_suit
     }
     all found: Foundation | {
-        found.found_suit < 5
+        found.found_suit < 3
         found.found_suit > 0 
     }
 }
 
 pred wellformed_card {
     all card : Card | {
-        // card ranks are between 1-3
-        card.rank > 0 && card.rank <= 3
+        // card ranks are between 1-4
+        card.rank > 0 && card.rank <= 4
         
         // card color is 0 (black) or 1 (red)
         card.color = 0 || card.color = 1
 
         // card suit is 1 (heart), 2 (spade), 3 (club), or 4 (diamond)
-        card.suit > 0 && card.suit < 5
+        card.suit > 0 && card.suit < 3
 
         // a card's next can't be itself
         card.next != card
 
        // some card.next iff card in Used.cards  // a card can only have a next if it's been flipped over
+    
+    //     // version for entire game
+    //    (card.suit = 1 or card.suit = 4) implies card.color = 1      
+    //    (card.suit = 2 or card.suit = 3) implies card.color = 0
 
-       (card.suit = 1 or card.suit = 4) implies card.color = 1      
-       (card.suit = 2 or card.suit = 3) implies card.color = 0
+    card.suit = 1 implies card.color = 1 
+    card.suit = 2 implies card.color = 0 
 
     }
 
-    #{card : Card | card.suit = 1} = 3
-    #{card : Card | card.suit = 2} = 3
-    #{card : Card | card.suit = 3} = 3
-    #{card : Card | card.suit = 4} = 3
+    #{card : Card | card.suit = 1} = 4
+    #{card : Card | card.suit = 2} = 4
+    // #{card : Card | card.suit = 3} = 3
+    // #{card : Card | card.suit = 4} = 3
 
     all disj card1, card2 : Card | {
         // no two equal cards
@@ -123,7 +144,7 @@ pred wellformed_deck {
     // non-empty deck must have some movable card
     #{Deck.flipped} > 0  implies some Deck.movable
     // never exceeds 13 cards
-    #{Deck.unflipped} < 7
+    #{Deck.unflipped} < add[DECK_SIZE, 1]
     
 }
 
@@ -279,7 +300,7 @@ pred pile_to_pile {
     // top card from pile 1 to pile 2
     some disj pile1, pile2 : Pile | {
         // guard
-        add[pile1.top_card.rank,1] = pile2.top_card.rank
+        pile2.top_card.rank = add[pile1.top_card.rank,1]
         pile1.top_card.color != pile2.top_card.color 
 
         // pile 2 updates 
@@ -287,9 +308,6 @@ pred pile_to_pile {
         pile2.top_card'.next' = pile2.top_card
         pile2.pile_unflipped' = pile2.pile_unflipped
         pile2.pile_flipped' = pile2.pile_flipped + pile1.top_card
-
-        // pile 1 card gets moved
-        pile1.pile_flipped' = pile1.pile_flipped - pile1.top_card
         
         // pile 1 cases
         // there is a flipped card to replace the leaving card
@@ -366,9 +384,8 @@ pred pile_to_foundation {
         found.found_suit = pile.top_card.suit
 
         // update the foundation highest card
-        found.highest_card' = pile.top_card.rank 
-
-        // card leaves the flipped set
+        found.highest_card = subtract[pile.top_card.rank, 1]
+        found.highest_card' = pile.top_card.rank
         
         // if there is a next flipped card in the pile
         some pile.top_card.next => {
@@ -386,7 +403,6 @@ pred pile_to_foundation {
                 // update the top card, flipped, and unflipped
                 no pile.top_card'
                 pile.pile_unflipped' = pile.pile_unflipped
-                // #{pile.pile_flipped'} = 0
                 pile.pile_flipped' = pile.pile_flipped - pile.top_card
 
                 Used.cards' = Used.cards
@@ -481,9 +497,15 @@ pred deck_to_foundation {
 -- **UPDATE TO BE REAL GAME WON**
 pred winning_game {
     // all foundations have desired target value
-    all found: Foundation | {
-        found.highest_card = 2
+    all found : Foundation | {
+        found.highest_card = 3
     }
+    // some disj f1, f2, f3, f4: Foundation | {
+    //     f1.highest_card = 1
+    //     f2.highest_card = 1
+    //     f3.highest_card = 2
+    //     f4.highest_card = 2
+    // }
 }
 
 -- **LOTS OF QUESTIONS HERE**
@@ -545,11 +567,11 @@ pred move {
     //     do_nothing 
     // }
 
-    valid_deck_to_pile => {
-       deck_to_pile
-    } else {
-        draw_from_deck
-    }
+    // valid_deck_to_pile => {
+    //    deck_to_pile
+    // } else {
+    //     draw_from_deck
+    // }
 
     // valid_deck_to_pile => {
     //     deck_to_pile
@@ -586,27 +608,23 @@ pred foundation_strategy {
 }
 
 // prioritizes moving from a deck to a pile
-// pred buildup_strategy {
-//     valid_pile_to_pile => {
-//         pile_to_pile 
-//     } else {
-//         some pile: Pile | 
-//             valid_deck_to_pile[pile]  => {
-//                 deck_to_pile[pile]
-//             }
-//     }
-//      else (valid_deck_to_foundation) => {
-//         deck_to_foundation
-//     } else (valid_pile_to_foundation) => {
-//         pile_to_foundation
-//     } else {
-//         valid_draw_from_deck => {
-//             draw_from_deck
-//         } else {
-//             reset_deck
-//         }
-//     }
-// }
+pred pile_buildup_strategy {
+    valid_pile_to_pile => {
+        pile_to_pile
+    } else (valid_deck_to_pile) => {
+        deck_to_pile
+    } else (valid_deck_to_foundation) => {
+        deck_to_foundation
+    } else (valid_pile_to_foundation) => {
+        pile_to_foundation
+    } else {
+        valid_draw_from_deck => {
+            draw_from_deck
+        } else {
+            reset_deck
+        }
+    }
+}
 
 run {
     always{wellformed}
@@ -623,7 +641,7 @@ run {
     // }
     //eventually {#{Deck.flipped} = 0}
 
- } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
+ } for exactly 3 Pile, exactly 8 Card, exactly 2 Foundation
 
 // -- Run command for traces following the foundation strategy
 //  run {

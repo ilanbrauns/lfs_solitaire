@@ -304,5 +304,27 @@ test suite for random_tests{
 
         } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
 
+        move_until_game_over:{
+            always{wellformed}
+            initial
+            always{pile_buildup_strategy}
+            eventually {game_over}
+
+        } for 3 Pile, exactly 8 Card, exactly 2 Foundation is sat
+
+        pile_to_pile_until_empty:{
+            always{wellformed}
+            initial
+            always{valid_pile_to_pile => {
+                        pile_to_pile
+                        } else {
+                        draw_from_deck
+                }}
+            eventually{some p: Pile | {
+                    #{p.pile_flipped} = 0
+                    p.pile_unflipped = 0
+                }}
+        } for exactly 3 Pile, exactly 8 Card, exactly 2 Foundation is sat
+
     }
 }

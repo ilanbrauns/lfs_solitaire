@@ -6,7 +6,7 @@ option max_tracelength 15
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 2 }
-fun NUM_CARDS: one Int { 8 } 
+fun NUM_CARDS: one Int { 14 } 
 
 
 sig Card {
@@ -81,7 +81,7 @@ pred initial {
     }
     
     // only 3 cards used to start
-    #{Used.cards} = 3
+    #{Used.cards} = 4
     #{Deck.flipped} = 0
     #{Deck.unflipped} = DECK_SIZE
     no Deck.movable
@@ -101,7 +101,7 @@ pred wellformed_foundation {
 pred wellformed_card {
     all card : Card | {
         // card ranks are between 1-4
-        card.rank > 0 && card.rank <= 4
+        card.rank > 0 && card.rank <= 6
         
         // card color is 0 (black) or 1 (red)
         card.color = 0 || card.color = 1
@@ -123,8 +123,8 @@ pred wellformed_card {
 
     }
 
-    #{card : Card | card.suit = 1} = 4
-    #{card : Card | card.suit = 2} = 4
+    #{card : Card | card.suit = 1} = 6
+    #{card : Card | card.suit = 2} = 6
     // #{card : Card | card.suit = 3} = 3
     // #{card : Card | card.suit = 4} = 3
 
@@ -151,7 +151,7 @@ pred wellformed_deck {
 
 pred wellformed_piles {
     all pile : Pile | {
-        pile.id >= 0 && pile.id < 3 // 3 piles; 0 indexed
+        pile.id >= 0 && pile.id < 4 // 3 piles; 0 indexed
         some pile.top_card implies pile.top_card in pile.pile_flipped
         
         all card: Card | {
@@ -496,6 +496,155 @@ pred deck_to_foundation {
     Used.cards' = Used.cards
 }
 
+-- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
+pred valid_multi_pile_to_pile {
+    some disj pile1, pile2 : Pile | {
+        some card : Card | {
+            card in pile1.pile_flipped
+            add[card.rank, 1] = pile2.top_card.rank
+            card.color != pile2.top_card.color
+        }
+    }
+}
+
+-- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
+pred multi_pile_to_pile {
+    // top card from pile 1 to pile 2
+    some disj pile1, pile2 : Pile | {
+        some card : Card | {
+            // guard
+            card in pile1.pile_flipped
+            add[card.rank, 1] = pile2.top_card.rank
+            card.color != pile2.top_card.color
+
+            // pile 2 updates 
+            pile2.top_card' = pile1.top_card
+            card.next' = pile2.top_card
+            pile2.pile_unflipped' = pile2.pile_unflipped
+            pile2.pile_flipped' = pile2.pile_flipped 
+                                + {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+            
+            // pile 1 cases
+            // there is a flipped card to replace the leaving card
+            some card.next => {
+
+                // update the top card, flipped, and unflipped
+                pile1.top_card' = card.next
+                pile1.pile_unflipped' = pile1.pile_unflipped
+                pile1.pile_flipped' = pile1.pile_flipped 
+                                    - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+
+                Used.cards' = Used.cards
+            } else {
+                // if there is no more flipped cards in the pile and no more unflipped
+                (pile1.pile_unflipped = 0) => {
+                    // update the top card, flipped, and unflipped
+                    no pile1.top_card'
+                    pile1.pile_unflipped' = pile1.pile_unflipped
+                    pile1.pile_flipped' = pile1.pile_flipped 
+                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+
+                    Used.cards' = Used.cards
+                // if there is no more flipped cards in the pile we need to flip over an unflipped card
+                } else {
+                    // update the top card, flipped, and unflipped
+                    pile1.top_card' not in Used.cards
+                    pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
+                    pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
+                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+
+                    // pile1.top_card' in Used.cards'
+                    Used.cards' = Used.cards + pile1.top_card'
+                }
+            }
+
+        //keep all the other piles the same
+        all other_p: Pile | {
+            (other_p.id != pile1.id and other_p.id != pile2.id) implies {
+                other_p.pile_flipped' = other_p.pile_flipped
+                other_p.pile_unflipped' = other_p.pile_unflipped
+                other_p.top_card' = other_p.top_card
+            }  
+        }
+        // keep all cards next var the same
+        all other_c: Card | {
+            (other_c.rank != card.rank or other_c.suit != card.suit) implies {
+                other_c.next' = other_c.next
+            }
+        }
+    }
+}
+    //keep all the foundations the same
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
+
+    // keep deck the same
+    Deck.flipped' = Deck.flipped
+    Deck.unflipped' = Deck.unflipped
+    Deck.movable' = Deck.movable
+}
+
+-- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
+pred valid_pile_to_empty {
+    some disj pile1, pile2 : Pile | {
+        some pile1.top_card
+        no pile2.top_card
+        pile1.pile_unflipped != 0
+    }
+}
+
+-- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
+pred pile_to_empty {
+    some disj pile1, pile2 : Pile | {
+        some card : Card | {
+            some pile1.top_card
+            no pile2.top_card
+            card in pile1.flipped and no card.next
+
+            // pile 2 updates 
+            pile2.top_card' = pile1.top_card
+            no card.next'
+            pile2.pile_unflipped' = pile2.pile_unflipped
+            pile2.pile_flipped' = {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+            
+            // update the top card, flipped, and unflipped
+            pile1.top_card' not in Used.cards
+            pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
+            pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
+                                - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+
+            // pile1.top_card' in Used.cards'
+            Used.cards' = Used.cards + pile1.top_card'
+                
+
+            //keep all the other piles the same
+            all other_p: Pile | {
+                (other_p.id != pile1.id and other_p.id != pile2.id) implies {
+                    other_p.pile_flipped' = other_p.pile_flipped
+                    other_p.pile_unflipped' = other_p.pile_unflipped
+                    other_p.top_card' = other_p.top_card
+                }  
+            }
+        }
+    }
+
+    // keep all cards next var the same
+    all card: Card | {
+        card.next' = card.next
+    }
+        
+    //keep all the foundations the same
+    all found: Foundation | {
+        found.highest_card' = found.highest_card
+    }
+
+    // keep deck the same
+    Deck.flipped' = Deck.flipped
+    Deck.unflipped' = Deck.unflipped
+    Deck.movable' = Deck.movable
+}
+
 -- DONE
 pred winning_game {
     // all foundations have desired target value
@@ -505,7 +654,7 @@ pred winning_game {
 }
 
 -- PHYSICALLY IMPOSSIBLE TO HAVE LOSING GAME WITH 8 CARDS I THINK - UNTESTED ON BIGGER CARD VALUES
-pred lost_game{
+pred losing_game{
     not winning_game
     all card : Card | {
         card in Deck.flipped or card in Deck.unflipped
@@ -522,33 +671,33 @@ pred lost_game{
 }
 
 pred game_over{
-    lost_game
+    losing_game
     // winning_game
     // winning_game or lost_game
 }
 
--- **WORKS**
-pred do_nothing {
-    Deck.flipped' = Deck.flipped
-    Deck.unflipped' = Deck.unflipped
-    Deck.movable' = Deck.movable
+// -- **WORKS**
+// pred do_nothing {
+//     Deck.flipped' = Deck.flipped
+//     Deck.unflipped' = Deck.unflipped
+//     Deck.movable' = Deck.movable
 
-    all pile: Pile | {
-        pile.pile_flipped' = pile.pile_flipped
-        pile.pile_unflipped' = pile.pile_unflipped
-        pile.top_card' = pile.top_card
-    }
+//     all pile: Pile | {
+//         pile.pile_flipped' = pile.pile_flipped
+//         pile.pile_unflipped' = pile.pile_unflipped
+//         pile.top_card' = pile.top_card
+//     }
 
-    Used.cards' = Used.cards
+//     Used.cards' = Used.cards
 
-    all found: Foundation | {
-        found.highest_card' = found.highest_card
-    }
+//     all found: Foundation | {
+//         found.highest_card' = found.highest_card
+//     }
     
-    all card: Card | {
-        card.next' = card.next
-    }
-}
+//     all card: Card | {
+//         card.next' = card.next
+//     }
+// }
 
 pred move {
     // (#{Deck.unflipped} = 0) => {
@@ -638,7 +787,7 @@ pred pile_buildup_strategy {
 run {
     always{wellformed}
     initial
-    always{pile_buildup_strategy}
+    always{foundation_strategy}
     eventually {game_over}
     // eventually{some p: Pile | {
     //         #{p.pile_flipped} = 0
@@ -654,7 +803,7 @@ run {
     // }
     //eventually {#{Deck.flipped} = 0}
 
- } for exactly 3 Pile, exactly 8 Card, exactly 2 Foundation
+ } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 
 // -- Run command for traces following the foundation strategy
 //  run {
@@ -671,153 +820,3 @@ run {
 //     always{buildup_strategy}
 //     eventually {game_over}
 //  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
-
-
--- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
-pred valid_multi_pile_to_pile {
-    some disj pile1, pile2 : Pile | {
-        some card : Cards | {
-            card in pile1.pile_flipped
-            add[card.rank, 1] = pile2.top_card.rank
-            card.color != pile2.top_card.color
-        }
-    }
-}
-
--- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
-pred multi_pile_to_pile {
-    // top card from pile 1 to pile 2
-    some disj pile1, pile2 : Pile | {
-        some card : Cards | {
-            // guard
-            card in pile1.pile_flipped
-            add[card.rank, 1] = pile2.top_card.rank
-            card.color != pile2.top_card.color
-
-            // pile 2 updates 
-            pile2.top_card' = pile1.top_card
-            card.next' = pile2.top_card
-            pile2.pile_unflipped' = pile2.pile_unflipped
-            pile2.pile_flipped' = pile2.pile_flipped 
-                                + {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-            
-            // pile 1 cases
-            // there is a flipped card to replace the leaving card
-            some card.next => {
-
-                // update the top card, flipped, and unflipped
-                pile1.top_card' = card.next
-                pile1.pile_unflipped' = pile1.pile_unflipped
-                pile1.pile_flipped' = pile1.pile_flipped 
-                                    - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-
-                Used.cards' = Used.cards
-            } else {
-                // if there is no more flipped cards in the pile and no more unflipped
-                (pile1.pile_unflipped = 0) => {
-                    // update the top card, flipped, and unflipped
-                    no pile1.top_card'
-                    pile1.pile_unflipped' = pile1.pile_unflipped
-                    pile1.pile_flipped' = pile1.pile_flipped 
-                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-
-                    Used.cards' = Used.cards
-                // if there is no more flipped cards in the pile we need to flip over an unflipped card
-                } else {
-                    // update the top card, flipped, and unflipped
-                    pile1.top_card' not in Used.cards
-                    pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
-                    pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
-                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-
-                    // pile1.top_card' in Used.cards'
-                    Used.cards' = Used.cards + pile1.top_card'
-                }
-            }
-
-        //keep all the other piles the same
-        all other_p: Pile | {
-            (other_p.id != pile1.id and other_p.id != pile2.id) implies {
-                other_p.pile_flipped' = other_p.pile_flipped
-                other_p.pile_unflipped' = other_p.pile_unflipped
-                other_p.top_card' = other_p.top_card
-            }  
-        }
-        // keep all cards next var the same
-        all other_c: Card | {
-            (other_c.rank != card.rank or other_c.suit != card.suit) implies {
-                other_c.next' = other_c.next
-            }
-        }
-    }
-}
-    //keep all the foundations the same
-    all found: Foundation | {
-        found.highest_card' = found.highest_card
-    }
-
-    // keep deck the same
-    Deck.flipped' = Deck.flipped
-    Deck.unflipped' = Deck.unflipped
-    Deck.movable' = Deck.movable
-}
-
--- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
-pred valid_pile_to_empty {
-    some disj pile1, pile2 : Pile | {
-        some pile1.top_card
-        no pile2.top_card
-        pile1.pile_unflipped != 0
-    }
-}
-
--- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
-pred pile_to_empty {
-    some disj pile1, pile2 : Pile | {
-        some card : Cards | {
-            some pile1.top_card
-            no pile2.top_card
-            card in pile1.flipped and no card.next
-
-            // pile 2 updates 
-            pile2.top_card' = pile1.top_card
-            no card.next'
-            pile2.pile_unflipped' = pile2.pile_unflipped
-            pile2.pile_flipped' = {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-            
-            // update the top card, flipped, and unflipped
-            pile1.top_card' not in Used.cards
-            pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
-            pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
-                                - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-
-            // pile1.top_card' in Used.cards'
-            Used.cards' = Used.cards + pile1.top_card'
-                
-
-            //keep all the other piles the same
-            all other_p: Pile | {
-                (other_p.id != pile1.id and other_p.id != pile2.id) implies {
-                    other_p.pile_flipped' = other_p.pile_flipped
-                    other_p.pile_unflipped' = other_p.pile_unflipped
-                    other_p.top_card' = other_p.top_card
-                }  
-            }
-        }
-    }
-
-    // keep all cards next var the same
-    all card: Card | {
-        card.next' = card.next
-    }
-        
-    //keep all the foundations the same
-    all found: Foundation | {
-        found.highest_card' = found.highest_card
-    }
-
-    // keep deck the same
-    Deck.flipped' = Deck.flipped
-    Deck.unflipped' = Deck.unflipped
-    Deck.movable' = Deck.movable
-}

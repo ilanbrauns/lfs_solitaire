@@ -2,11 +2,11 @@
 
 option run_sterling "solitaire.js"
 
-option max_tracelength 25
+option max_tracelength 15
 
 -- constants for card numbers
 fun DECK_SIZE: one Int { 2 }
-fun NUM_CARDS: one Int { 12 } 
+fun NUM_CARDS: one Int { 14 } 
 
 
 sig Card {
@@ -100,7 +100,7 @@ pred wellformed_foundation {
 
 pred wellformed_card {
     all card : Card | {
-        // card ranks are between 1-6
+        // card ranks are between 1-4
         card.rank > 0 && card.rank <= 6
         
         // card color is 0 (black) or 1 (red)
@@ -151,14 +151,12 @@ pred wellformed_deck {
 
 pred wellformed_piles {
     all pile : Pile | {
-        pile.id >= 0 && pile.id < 4 // 4 piles; 0 indexed
+        pile.id >= 0 && pile.id < 4 // 3 piles; 0 indexed
         some pile.top_card implies pile.top_card in pile.pile_flipped
         
         all card: Card | {
             card in pile.pile_flipped implies card in Used.cards  // a flipped card means it's in used cards
         }
-
-        #{pile.pile_flipped} >= 1 implies some pile.top_card
     }
 
     all disj pile1, pile2: Pile | {

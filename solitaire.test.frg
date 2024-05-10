@@ -2,8 +2,6 @@
 
 open "solitaire.frg"
 
--- ALL TESTS WORK: ILAN 5/7 3PM 
-
 // // jinho
 // test suite for initial{
 //     // assert wellformed_deck is necessary for initial for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation

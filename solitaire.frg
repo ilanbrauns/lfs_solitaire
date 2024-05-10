@@ -794,7 +794,9 @@ pred foundation_strategy {
 
 // prioritizes moving from a deck to a pile
 pred pile_buildup_strategy {
-    valid_pile_to_pile => {
+    valid_multi_pile_to_pile => {
+        multi_pile_to_pile 
+    } else (valid_pile_to_pile) => {
         pile_to_pile
     } else (valid_deck_to_pile) => {
         deck_to_pile
@@ -840,18 +842,20 @@ pred pile_buildup_strategy {
 //     eventually {game_over}
 //  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
 
-run{
-    always{wellformed}
-    initial
-    always{foundation_strategy}
-    eventually {game_over}
-
-} for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
-
-// -- Run command for traces following the buildup strategy
-//  run {
+--foundation strat works for this:
+// run{
 //     always{wellformed}
 //     initial
-//     always{pile_buildup_strategy}
+//     always{foundation_strategy}
 //     eventually {game_over}
-//  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
+
+// } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
+
+-- Run command for traces following the buildup strategy
+-- changed from 4 foundations to 2.. is working
+ run {
+    always{wellformed}
+    initial
+    always{pile_buildup_strategy}
+    eventually {game_over}
+ } for 5 Int, exactly 4 Pile, exactly 12 Card, exactly 2 Foundation

@@ -157,6 +157,8 @@ pred wellformed_piles {
         all card: Card | {
             card in pile.pile_flipped implies card in Used.cards  // a flipped card means it's in used cards
         }
+
+        #{pile.pile_flipped} >= 1 implies some pile.top_card
     }
 
     all disj pile1, pile2: Pile | {

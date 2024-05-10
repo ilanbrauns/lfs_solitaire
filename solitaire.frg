@@ -633,13 +633,25 @@ pred pile_to_empty {
             pile2.top_card' = pile1.top_card
             no card.next'
             pile2.pile_unflipped' = pile2.pile_unflipped
-            pile2.pile_flipped' = {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+            // pile2.pile_flipped' = 
+            all moved : card | {
+                card in pile1.pile_flipped
+                reachable[moved, pile1.top_card, next]
+                not reachable[moved, card, next]
+                moved in pile2.pile_flipped'
+                }
             
             // update the top card, flipped, and unflipped
             pile1.top_card' not in Used.cards
             pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
-            pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
-                                - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+            all moved: card | {
+                card in pile1.pile_flipped
+                reachable[moved, pile1.top_card, next]
+                not reachable[moved, card, next]
+                moved not in pile1.pile_flipped'
+            }
+            // pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
+            //                     - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
 
             // pile1.top_card' in Used.cards'
             Used.cards' = Used.cards + pile1.top_card'
@@ -676,7 +688,7 @@ pred pile_to_empty {
 pred winning_game {
     // all foundations have desired target value
     all found : Foundation | {
-        found.highest_card = 4
+        found.highest_card = 6
     }
 }
 

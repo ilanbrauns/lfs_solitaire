@@ -563,54 +563,60 @@ open "solitaire.frg"
 // }
 
 
-// test suite for random_tests{
-//     test expect {
-//         // draw_from_deck_until_empty:{
-//         //     always{wellformed}
-//         //     initial
-//         //     always{valid_draw_from_deck => {draw_from_deck} else {reset_deck}}
-//         //     eventually {#{Deck.unflipped} = 0}
 
-//         // } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+test suite for random_tests{
+    test expect {
+        //working
+        draw_from_deck_until_empty:{
+            always{wellformed}
+            initial
+            always{valid_draw_from_deck => {draw_from_deck} else {reset_deck}}
+            eventually {#{Deck.unflipped} = 0}
 
-//         move_to_pile_til_deck_empty:{
-//             always{wellformed}
-//             initial
-//             always{valid_deck_to_pile => {deck_to_pile} else {draw_from_deck}}
-//             eventually {#{Deck.unflipped} = 4}
-//             eventually {#{Deck.flipped} = 2}
+        } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation is sat
 
-//         } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+        //not working
+        // move_to_pile_til_deck_empty:{
+        //     always{wellformed}
+        //     initial
+        //     always{valid_deck_to_pile => {deck_to_pile} else {draw_from_deck}}
+        //     eventually {#{Deck.unflipped} = 4}
+        //     eventually {#{Deck.flipped} = 2}
 
-//         move_until_game_over:{
-//             always{wellformed}
-//             initial
-//             always{foundation_strategy}
-//             eventually {game_over}
+        // } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation is sat
 
-//         } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation is sat
+        //works
+        move_until_game_over:{
+            always{wellformed}
+            initial
+            always{foundation_strategy}
+            eventually {game_over}
 
-//         move_until_game_over:{
-//             always{wellformed}
-//             initial
-//             always{pile_buildup_strategy}
-//             eventually {game_over}
+        } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation is sat
 
-//         } for 3 Pile, exactly 8 Card, exactly 2 Foundation is sat
+        // works
+        move_until_game_over2:{
+            always{wellformed}
+            initial
+            always{pile_buildup_strategy}
+            eventually {game_over}
 
-//         pile_to_pile_until_empty:{
-//             always{wellformed}
-//             initial
-//             always{valid_pile_to_pile => {
-//                         pile_to_pile
-//                         } else {
-//                         draw_from_deck
-//                 }}
-//             eventually{some p: Pile | {
-//                     #{p.pile_flipped} = 0
-//                     p.pile_unflipped = 0
-//                 }}
-//         } for exactly 3 Pile, exactly 8 Card, exactly 2 Foundation is sat
+        } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation is sat
 
-//     }
-// }
+        //working
+        pile_to_pile_until_empty:{
+            always{wellformed}
+            initial
+            always{valid_pile_to_pile => {
+                        pile_to_pile
+                        } else {
+                        draw_from_deck
+                }}
+            eventually{some p: Pile | {
+                    #{p.pile_flipped} = 0
+                    p.pile_unflipped = 0
+                }}
+        } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation is sat
+
+    }
+}

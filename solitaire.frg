@@ -671,8 +671,8 @@ pred losing_game{
 }
 
 pred game_over{
-    losing_game
-    // winning_game
+    // losing_game
+    winning_game
     // winning_game or lost_game
 }
 
@@ -784,26 +784,26 @@ pred pile_buildup_strategy {
     }
 }
 
-run {
-    always{wellformed}
-    initial
-    always{foundation_strategy}
-    eventually {game_over}
-    // eventually{some p: Pile | {
-    //         #{p.pile_flipped} = 0
-    //         p.pile_unflipped = 0
-    //     }}
-    //eventually {Deck.unflipped}
-    // eventually {#{Deck.unflipped} = 4}    
-    // eventually {#{Deck.flipped} = 2}
-    //     some p: Pile | {
-    //         #{p.pile_flipped} = 0
-    //         p.pile_unflipped = 0
-    //     }
-    // }
-    //eventually {#{Deck.flipped} = 0}
+// run {
+//     always{wellformed}
+//     initial
+//     always{foundation_strategy}
+//     eventually {game_over}
+//     // eventually{some p: Pile | {
+//     //         #{p.pile_flipped} = 0
+//     //         p.pile_unflipped = 0
+//     //     }}
+//     //eventually {Deck.unflipped}
+//     // eventually {#{Deck.unflipped} = 4}    
+//     // eventually {#{Deck.flipped} = 2}
+//     //     some p: Pile | {
+//     //         #{p.pile_flipped} = 0
+//     //         p.pile_unflipped = 0
+//     //     }
+//     // }
+//     //eventually {#{Deck.flipped} = 0}
 
- } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
+//  } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 
 // -- Run command for traces following the foundation strategy
 //  run {
@@ -813,10 +813,10 @@ run {
 //     eventually {game_over}
 //  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
 
-// -- Run command for traces following the buildup strategy
-//  run {
-//     always{wellformed}
-//     initial
-//     always{buildup_strategy}
-//     eventually {game_over}
-//  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
+-- Run command for traces following the buildup strategy
+ run {
+    always{wellformed}
+    initial
+    always{pile_buildup_strategy}
+    eventually {game_over}
+ } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation

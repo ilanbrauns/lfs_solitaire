@@ -508,6 +508,7 @@ pred valid_multi_pile_to_pile {
 }
 
 -- FINSIHED BUT NOT TESTED: LOWKEY DON'T INTED TO ACTUALLY USE SO MIGHT NOT BE WORTH TIME TESTING
+-- jinho: tested, works for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 pred multi_pile_to_pile {
     // top card from pile 1 to pile 2
     some disj pile1, pile2 : Pile | {
@@ -521,9 +522,14 @@ pred multi_pile_to_pile {
             pile2.top_card' = pile1.top_card
             card.next' = pile2.top_card
             pile2.pile_unflipped' = pile2.pile_unflipped
-            pile2.pile_flipped' = pile2.pile_flipped 
-                                + {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
-            
+            // pile2.pile_flipped' = pile2.pile_flipped 
+            //                     + {all moved : card | { card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}}
+            all moved : card | {
+                moved in pile1.pile_flipped
+                reachable[moved, pile1.top_card, next]
+                not reachable[moved, card, next]
+                moved in pile2.pile_flipped'
+            }            
             // pile 1 cases
             // there is a flipped card to replace the leaving card
             some card.next => {
@@ -531,8 +537,14 @@ pred multi_pile_to_pile {
                 // update the top card, flipped, and unflipped
                 pile1.top_card' = card.next
                 pile1.pile_unflipped' = pile1.pile_unflipped
-                pile1.pile_flipped' = pile1.pile_flipped 
-                                    - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+                all moved : card | {
+                    card in pile1.pile_flipped
+                    reachable[moved, pile1.top_card, next]
+                    not reachable[moved, card, next]
+                    moved not in pile1.pile_flipped'
+                }
+                // pile1.pile_flipped' = pile1.pile_flipped 
+                //                     - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
 
                 Used.cards' = Used.cards
             } else {
@@ -541,8 +553,14 @@ pred multi_pile_to_pile {
                     // update the top card, flipped, and unflipped
                     no pile1.top_card'
                     pile1.pile_unflipped' = pile1.pile_unflipped
-                    pile1.pile_flipped' = pile1.pile_flipped 
-                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+                    all moved : card | {
+                        card in pile1.pile_flipped
+                        reachable[moved, pile1.top_card, next]
+                        not reachable[moved, card, next]
+                        moved not in pile1.pile_flipped'
+                    }
+                    // pile1.pile_flipped' = pile1.pile_flipped 
+                    //                     - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
 
                     Used.cards' = Used.cards
                 // if there is no more flipped cards in the pile we need to flip over an unflipped card
@@ -550,8 +568,15 @@ pred multi_pile_to_pile {
                     // update the top card, flipped, and unflipped
                     pile1.top_card' not in Used.cards
                     pile1.pile_unflipped' = subtract[pile1.pile_unflipped,1]
-                    pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
-                                        - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
+
+                    all moved : card | {
+                        card in pile1.pile_flipped
+                        reachable[moved, pile1.top_card, next]
+                        not reachable[moved, card, next]
+                        moved not in pile1.pile_flipped'
+                    }
+                    // pile1.pile_flipped' = pile1.pile_flipped + pile1.top_card' 
+                    //                     - {all moved : card | card in pile1.pile_flipped and reachable[moved, pile1.top_card, next] and not reachable[moved, card, next]}
 
                     // pile1.top_card' in Used.cards'
                     Used.cards' = Used.cards + pile1.top_card'
@@ -751,7 +776,9 @@ pred foundation_strategy {
     valid_deck_to_foundation => {
         deck_to_foundation 
     } else (valid_pile_to_foundation) => {
-        pile_to_foundation
+        pile_to_foundation 
+    } else (valid_multi_pile_to_pile) => {
+        multi_pile_to_pile
     } else (valid_pile_to_pile) => {
         pile_to_pile
     } else (valid_deck_to_pile) => {
@@ -813,10 +840,18 @@ pred pile_buildup_strategy {
 //     eventually {game_over}
 //  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
 
--- Run command for traces following the buildup strategy
- run {
+run{
     always{wellformed}
     initial
-    always{pile_buildup_strategy}
+    always{foundation_strategy}
     eventually {game_over}
- } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation
+
+} for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
+
+// -- Run command for traces following the buildup strategy
+//  run {
+//     always{wellformed}
+//     initial
+//     always{pile_buildup_strategy}
+//     eventually {game_over}
+//  } for 5 Int, exactly 3 Pile, exactly 12 Card, exactly 4 Foundation

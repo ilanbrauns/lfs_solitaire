@@ -186,8 +186,8 @@ pred draw_from_deck{
 }
 
 pred reset_deck {
-    #{Deck.flipped} > 0
-    #{Deck.unflipped} = 0
+    // #{Deck.flipped} > 0
+    // #{Deck.unflipped} = 0
     // swap unflipped and flipped, no movable
     Deck.unflipped' = Deck.flipped
     Deck.flipped' = Deck.unflipped
@@ -737,18 +737,18 @@ pred move {
     draw_from_deck or pile_to_pile or deck_to_pile or deck_to_foundation or pile_to_foundation or reset_deck
 }
 
- run {
-    always{wellformed}
-    initial
-    always{foundation_strategy}
-    eventually{winning_game}
-    // always {not winning_game}
-    // {eventually{winning_game}} until losing_game
-    // eventually{losing_game and prev_state{once{eventually{winning_game}}}}
-    // always{historically{eventually{winning_game}} until losing_game}
-    //always{once{winning_game}}
-    //foundation_strategy until losing_game
- } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
+//  run {
+//     always{wellformed}
+//     initial
+//     always{pile_buildup_strategy}
+//     eventually{winning_game}
+//     // always {not winning_game}
+//     // {eventually{winning_game}} until losing_game
+//     // eventually{losing_game and prev_state{once{eventually{winning_game}}}}
+//     // always{historically{eventually{winning_game}} until losing_game}
+//     //always{once{winning_game}}
+//     //foundation_strategy until losing_game
+//  } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 
 //  run {
 //     always{wellformed}
@@ -758,12 +758,12 @@ pred move {
 //  } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 
 // -- Run command for traces following the foundation strategy
-//  run {
-//     always{wellformed}
-//     initial
-//     always{foundation_strategy}
-//     eventually {game_over}
-//  } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
+ run {
+    always{wellformed}
+    initial
+    always{foundation_strategy}
+    eventually {game_over}
+ } for exactly 4 Pile, exactly 12 Card, exactly 2 Foundation
 
 // -- Run command for traces following the buildup strategy
 //  run {
